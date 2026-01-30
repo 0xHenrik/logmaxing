@@ -1,11 +1,9 @@
-import Database from 'better-sqlite3';
-import { env } from '$env/dynamic/private';
-import { drizzle } from 'drizzle-orm/better-sqlite3';
+// db.ts
+import { drizzle } from 'drizzle-orm/libsql';
+import { createClient } from '@libsql/client';
 
-import * as schema from './schema';
+const client = createClient({
+	url: 'file:local.db'
+});
 
-if (!env.DATABASE_URL) throw new Error('DATABASE_URL is not set');
-
-const client = new Database(env.DATABASE_URL);
-
-export const db = drizzle(client, { schema });
+export const db = drizzle(client);
