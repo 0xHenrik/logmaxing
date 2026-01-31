@@ -27,14 +27,15 @@ export async function getMuscles(): Promise<MuscleWithVolume[]> {
 export const updateMuscle = async (id: number, data: MuscleWithVolume) => {
 	const { name, muscleGroup, volumeThreshold } = data;
 
-	const batchResponse = await db.batch([
-		db.update(muscle).set({ name, muscleGroup }).where(eq(muscle.id, id)),
-		db
-			.update(muscleVolumeThreshold)
-			.set({ ...volumeThreshold })
-			.where(eq(muscleVolumeThreshold.muscleId, id))
-	]);
-	return batchResponse;
+	await db.transaction(async (tx) => {
+		await tx.update(muscle).set({ name, muscleGroup }).where(eq(muscle.id, id));
+		if (volumeThreshold) {
+			await tx
+				.update(muscleVolumeThreshold)
+				.set({ ...volumeThreshold })
+				.where(eq(muscleVolumeThreshold.muscleId, id));
+		}
+	});
 };
 
 export const getMuscle = async (id: number): Promise<MuscleWithVolume[]> => {
