@@ -1,10 +1,10 @@
-// schema.ts
+// schema.ts - PostgreSQL version for Supabase
 import { type InferSelectModel, relations } from 'drizzle-orm';
-import { text, real, unique, integer, sqliteTable } from 'drizzle-orm/sqlite-core';
+import { text, serial, unique, integer, pgTable, doublePrecision } from 'drizzle-orm/pg-core';
 
 // Users
-export const userProfile = sqliteTable('user_profile', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
+export const userProfile = pgTable('user_profile', {
+	id: serial('id').primaryKey(),
 	name: text('name'),
 	fitnessLevel: integer('fitness_level'),
 	age: integer('age'),
@@ -12,13 +12,13 @@ export const userProfile = sqliteTable('user_profile', {
 });
 
 // Muscles
-export const muscle = sqliteTable('muscle', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
+export const muscle = pgTable('muscle', {
+	id: serial('id').primaryKey(),
 	name: text('name').notNull().unique(),
 	muscleGroup: text('muscle_group')
 });
 
-export const muscleVolumeThreshold = sqliteTable('muscle_volume_threshold', {
+export const muscleVolumeThreshold = pgTable('muscle_volume_threshold', {
 	muscleId: integer('muscle_id')
 		.primaryKey()
 		.references(() => muscle.id, { onDelete: 'cascade' }),
@@ -30,19 +30,19 @@ export const muscleVolumeThreshold = sqliteTable('muscle_volume_threshold', {
 });
 
 // Equipment
-export const equipment = sqliteTable('equipment', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
+export const equipment = pgTable('equipment', {
+	id: serial('id').primaryKey(),
 	name: text('name')
 });
 
 // Exercises
-export const exercise = sqliteTable('exercise', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
+export const exercise = pgTable('exercise', {
+	id: serial('id').primaryKey(),
 	name: text('name').notNull().unique()
 });
 
 // Exercise ↔ Muscle (many-to-many with attributes)
-export const exerciseMuscle = sqliteTable(
+export const exerciseMuscle = pgTable(
 	'exercise_muscle',
 	{
 		exerciseId: integer('exercise_id')
@@ -52,13 +52,13 @@ export const exerciseMuscle = sqliteTable(
 			.notNull()
 			.references(() => muscle.id, { onDelete: 'cascade' }),
 		activationType: text('activation_type'),
-		weighting: real('weighting')
+		weighting: doublePrecision('weighting')
 	},
 	(table) => [unique().on(table.exerciseId, table.muscleId)]
 );
 
 // Exercise ↔ Equipment (many-to-many)
-export const exerciseEquipment = sqliteTable(
+export const exerciseEquipment = pgTable(
 	'exercise_equipment',
 	{
 		exerciseId: integer('exercise_id')
@@ -72,8 +72,8 @@ export const exerciseEquipment = sqliteTable(
 );
 
 // Programs
-export const program = sqliteTable('program', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
+export const program = pgTable('program', {
+	id: serial('id').primaryKey(),
 	name: text('name').notNull(),
 	userId: integer('user_id').references(() => userProfile.id, { onDelete: 'set null' }),
 	description: text('description'),
@@ -82,8 +82,8 @@ export const program = sqliteTable('program', {
 });
 
 // Blocks (within programs)
-export const block = sqliteTable('block', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
+export const block = pgTable('block', {
+	id: serial('id').primaryKey(),
 	programId: integer('program_id')
 		.notNull()
 		.references(() => program.id, { onDelete: 'cascade' }),
@@ -94,8 +94,8 @@ export const block = sqliteTable('block', {
 });
 
 // Days within a block
-export const blockDay = sqliteTable('block_day', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
+export const blockDay = pgTable('block_day', {
+	id: serial('id').primaryKey(),
 	blockId: integer('block_id')
 		.notNull()
 		.references(() => block.id, { onDelete: 'cascade' }),
@@ -104,8 +104,8 @@ export const blockDay = sqliteTable('block_day', {
 });
 
 // Workouts
-export const workout = sqliteTable('workout', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
+export const workout = pgTable('workout', {
+	id: serial('id').primaryKey(),
 	blockDayId: integer('block_day_id')
 		.notNull()
 		.references(() => blockDay.id, { onDelete: 'cascade' }),
@@ -115,8 +115,8 @@ export const workout = sqliteTable('workout', {
 });
 
 // Exercises inside a workout
-export const workoutExercise = sqliteTable('workout_exercise', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
+export const workoutExercise = pgTable('workout_exercise', {
+	id: serial('id').primaryKey(),
 	workoutId: integer('workout_id')
 		.notNull()
 		.references(() => workout.id, { onDelete: 'cascade' }),
@@ -125,7 +125,7 @@ export const workoutExercise = sqliteTable('workout_exercise', {
 		.references(() => exercise.id, { onDelete: 'cascade' }),
 	sets: integer('sets'),
 	reps: text('reps'),
-	weight: real('weight'),
+	weight: doublePrecision('weight'),
 	restSeconds: integer('rest_seconds'),
 	notes: text('notes'),
 	sequence: integer('sequence'),
@@ -133,31 +133,31 @@ export const workoutExercise = sqliteTable('workout_exercise', {
 });
 
 // Workout logging
-export const workoutLog = sqliteTable('workout_log', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
+export const workoutLog = pgTable('workout_log', {
+	id: serial('id').primaryKey(),
 	workoutExerciseId: integer('workout_exercise_id')
 		.notNull()
 		.references(() => workoutExercise.id, { onDelete: 'cascade' }),
 	performedSets: integer('performed_sets'),
 	performedReps: text('performed_reps'),
-	performedWeight: real('performed_weight'),
+	performedWeight: doublePrecision('performed_weight'),
 	date: text('date'),
 	notes: text('notes')
 });
 
 // User check-ins
-export const userCheckin = sqliteTable('user_checkin', {
-	id: integer('id').primaryKey({ autoIncrement: true }),
+export const userCheckin = pgTable('user_checkin', {
+	id: serial('id').primaryKey(),
 	userId: integer('user_id')
 		.notNull()
 		.references(() => userProfile.id, { onDelete: 'cascade' }),
 	date: text('date'),
-	weight: real('weight'),
-	waist: real('waist'),
-	chest: real('chest'),
-	hips: real('hips'),
+	weight: doublePrecision('weight'),
+	waist: doublePrecision('waist'),
+	chest: doublePrecision('chest'),
+	hips: doublePrecision('hips'),
 	steps: integer('steps'),
-	bodyFat: real('body_fat'),
+	bodyFat: doublePrecision('body_fat'),
 	notes: text('notes')
 });
 
@@ -266,7 +266,10 @@ export const userCheckinRelations = relations(userCheckin, ({ one }) => ({
 	})
 }));
 
-// Export inferreda types
-
+// Export inferred types
 export type Muscle = InferSelectModel<typeof muscle>;
 export type MuscleVolumeThreshold = InferSelectModel<typeof muscleVolumeThreshold>;
+export type Equipment = InferSelectModel<typeof equipment>;
+export type Exercise = InferSelectModel<typeof exercise>;
+export type ExerciseMuscle = InferSelectModel<typeof exerciseMuscle>;
+export type ExerciseEquipment = InferSelectModel<typeof exerciseEquipment>;

@@ -29,6 +29,7 @@
 		"@tailwindcss/vite": "^4.1.18",
 		"@types/better-sqlite3": "^7.6.13",
 		"@types/node": "^22",
+		"dotenv": "^17.2.3",
 		"drizzle-kit": "^0.31.8",
 		"drizzle-orm": "^0.45.1",
 		"eslint": "^9.39.2",
@@ -49,7 +50,10 @@
 	},
 	"dependencies": {
 		"@libsql/client": "^0.17.0",
-		"eslint-plugin-perfectionist": "^5.4.0"
+		"@upstash/ratelimit": "^2.0.8",
+		"@upstash/redis": "^1.36.1",
+		"eslint-plugin-perfectionist": "^5.4.0",
+		"postgres": "^3.4.8"
 	},
 	"lint-staged": {
 		"*.{js,ts,svelte}": [

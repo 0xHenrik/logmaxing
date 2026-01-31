@@ -25,3 +25,10 @@ vite.config.ts.timestamp-*
 # SQLite
 *.db
 
+# Claude Code (local only)
+.claude/
+CLAUDE.md
+CLAUDE_SETUP_GUIDE.md
+PROJECT_PLAN.md
+/docs/
+nul
