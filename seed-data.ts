@@ -3,69 +3,38 @@
 // Volume landmarks based on Renaissance Periodization guidelines
 // EMG weightings based on ACE studies, Bret Contreras, and academic research
 
-export const muscles = [
-	// Push muscles
-	{ name: 'Chest', muscleGroup: 'Push' },
-	{ name: 'Front Delts', muscleGroup: 'Push' },
-	{ name: 'Side Delts', muscleGroup: 'Push' },
-	{ name: 'Triceps', muscleGroup: 'Push' },
-
-	// Pull muscles
-	{ name: 'Lats', muscleGroup: 'Pull' },
-	{ name: 'Upper Back', muscleGroup: 'Pull' },
-	{ name: 'Rear Delts', muscleGroup: 'Pull' },
-	{ name: 'Biceps', muscleGroup: 'Pull' },
-	{ name: 'Forearms', muscleGroup: 'Pull' },
-	{ name: 'Traps', muscleGroup: 'Pull' },
-
-	// Legs
-	{ name: 'Quads', muscleGroup: 'Legs' },
-	{ name: 'Hamstrings', muscleGroup: 'Legs' },
-	{ name: 'Glutes', muscleGroup: 'Legs' },
-	{ name: 'Calves', muscleGroup: 'Legs' },
-	{ name: 'Adductors', muscleGroup: 'Legs' },
-
-	// Core
-	{ name: 'Abs', muscleGroup: 'Core' },
-	{ name: 'Obliques', muscleGroup: 'Core' },
-	{ name: 'Lower Back', muscleGroup: 'Core' },
-
-	// Other
-	{ name: 'Neck', muscleGroup: 'Other' }
-] as const;
-
-// Volume landmarks from RP (sets per week for whole muscle group)
+// Muscles with volume landmarks from RP (sets per week for whole muscle group)
 // MV = Maintenance Volume, MEV = Minimum Effective Volume
 // MAV = Maximum Adaptive Volume (range), MRV = Maximum Recoverable Volume
-export const volumeThresholds = [
-	// Push
-	{ muscle: 'Chest', mv: 4, mev: 6, mavMin: 10, mavMax: 16, mrv: 22 },
-	{ muscle: 'Front Delts', mv: 0, mev: 0, mavMin: 6, mavMax: 8, mrv: 12 },
-	{ muscle: 'Side Delts', mv: 6, mev: 8, mavMin: 16, mavMax: 22, mrv: 26 },
-	{ muscle: 'Triceps', mv: 4, mev: 6, mavMin: 10, mavMax: 14, mrv: 18 },
+export const muscles = [
+	// Push muscles
+	{ name: 'Chest', muscleGroup: 'Push', mv: 4, mev: 6, mavMin: 10, mavMax: 16, mrv: 22 },
+	{ name: 'Front Delts', muscleGroup: 'Push', mv: 0, mev: 0, mavMin: 6, mavMax: 8, mrv: 12 },
+	{ name: 'Side Delts', muscleGroup: 'Push', mv: 6, mev: 8, mavMin: 16, mavMax: 22, mrv: 26 },
+	{ name: 'Triceps', muscleGroup: 'Push', mv: 4, mev: 6, mavMin: 10, mavMax: 14, mrv: 18 },
 
-	// Pull
-	{ muscle: 'Lats', mv: 8, mev: 10, mavMin: 14, mavMax: 22, mrv: 25 },
-	{ muscle: 'Upper Back', mv: 6, mev: 8, mavMin: 12, mavMax: 18, mrv: 22 },
-	{ muscle: 'Rear Delts', mv: 0, mev: 6, mavMin: 12, mavMax: 16, mrv: 22 },
-	{ muscle: 'Biceps', mv: 6, mev: 8, mavMin: 14, mavMax: 20, mrv: 26 },
-	{ muscle: 'Forearms', mv: 2, mev: 4, mavMin: 8, mavMax: 14, mrv: 20 },
-	{ muscle: 'Traps', mv: 0, mev: 0, mavMin: 12, mavMax: 20, mrv: 26 },
+	// Pull muscles
+	{ name: 'Lats', muscleGroup: 'Pull', mv: 8, mev: 10, mavMin: 14, mavMax: 22, mrv: 25 },
+	{ name: 'Upper Back', muscleGroup: 'Pull', mv: 6, mev: 8, mavMin: 12, mavMax: 18, mrv: 22 },
+	{ name: 'Rear Delts', muscleGroup: 'Pull', mv: 0, mev: 6, mavMin: 12, mavMax: 16, mrv: 22 },
+	{ name: 'Biceps', muscleGroup: 'Pull', mv: 6, mev: 8, mavMin: 14, mavMax: 20, mrv: 26 },
+	{ name: 'Forearms', muscleGroup: 'Pull', mv: 2, mev: 4, mavMin: 8, mavMax: 14, mrv: 20 },
+	{ name: 'Traps', muscleGroup: 'Pull', mv: 0, mev: 0, mavMin: 12, mavMax: 20, mrv: 26 },
 
 	// Legs
-	{ muscle: 'Quads', mv: 6, mev: 8, mavMin: 12, mavMax: 18, mrv: 22 },
-	{ muscle: 'Hamstrings', mv: 4, mev: 6, mavMin: 10, mavMax: 16, mrv: 20 },
-	{ muscle: 'Glutes', mv: 0, mev: 0, mavMin: 4, mavMax: 12, mrv: 16 },
-	{ muscle: 'Calves', mv: 6, mev: 8, mavMin: 12, mavMax: 16, mrv: 20 },
-	{ muscle: 'Adductors', mv: 4, mev: 6, mavMin: 8, mavMax: 14, mrv: 18 },
+	{ name: 'Quads', muscleGroup: 'Legs', mv: 6, mev: 8, mavMin: 12, mavMax: 18, mrv: 22 },
+	{ name: 'Hamstrings', muscleGroup: 'Legs', mv: 4, mev: 6, mavMin: 10, mavMax: 16, mrv: 20 },
+	{ name: 'Glutes', muscleGroup: 'Legs', mv: 0, mev: 0, mavMin: 4, mavMax: 12, mrv: 16 },
+	{ name: 'Calves', muscleGroup: 'Legs', mv: 6, mev: 8, mavMin: 12, mavMax: 16, mrv: 20 },
+	{ name: 'Adductors', muscleGroup: 'Legs', mv: 4, mev: 6, mavMin: 8, mavMax: 14, mrv: 18 },
 
 	// Core
-	{ muscle: 'Abs', mv: 0, mev: 0, mavMin: 15, mavMax: 20, mrv: 25 },
-	{ muscle: 'Obliques', mv: 0, mev: 0, mavMin: 8, mavMax: 16, mrv: 20 },
-	{ muscle: 'Lower Back', mv: 4, mev: 6, mavMin: 10, mavMax: 16, mrv: 20 },
+	{ name: 'Abs', muscleGroup: 'Core', mv: 0, mev: 0, mavMin: 15, mavMax: 20, mrv: 25 },
+	{ name: 'Obliques', muscleGroup: 'Core', mv: 0, mev: 0, mavMin: 8, mavMax: 16, mrv: 20 },
+	{ name: 'Lower Back', muscleGroup: 'Core', mv: 4, mev: 6, mavMin: 10, mavMax: 16, mrv: 20 },
 
 	// Other
-	{ muscle: 'Neck', mv: 0, mev: 4, mavMin: 10, mavMax: 14, mrv: 20 }
+	{ name: 'Neck', muscleGroup: 'Other', mv: 0, mev: 4, mavMin: 10, mavMax: 14, mrv: 20 }
 ] as const;
 
 export const equipment = [

@@ -2,14 +2,13 @@
 import postgres from 'postgres';
 import { drizzle } from 'drizzle-orm/postgres-js';
 
-import { muscles, exercises, volumeThresholds, equipment as equipmentData } from './seed-data';
+import { muscles, exercises, equipment as equipmentData } from './seed-data';
 import {
 	muscle,
 	exercise,
 	equipment,
 	exerciseMuscle,
-	exerciseEquipment,
-	muscleVolumeThreshold
+	exerciseEquipment
 } from './src/lib/server/db/schema';
 
 import 'dotenv/config';
@@ -34,46 +33,30 @@ async function seed() {
 		console.log('Clearing existing data...');
 		await db.delete(exerciseEquipment);
 		await db.delete(exerciseMuscle);
-		await db.delete(muscleVolumeThreshold);
 		await db.delete(exercise);
 		await db.delete(equipment);
 		await db.delete(muscle);
 		console.log('  ✓ Existing data cleared');
 
-		// 1. Seed muscles
+		// 1. Seed muscles (with volume thresholds included)
 		console.log('Seeding muscles...');
 		const insertedMuscles = await db
 			.insert(muscle)
-			.values(muscles.map((m) => ({ name: m.name, muscleGroup: m.muscleGroup })))
+			.values(
+				muscles.map((m) => ({
+					name: m.name,
+					muscleGroup: m.muscleGroup,
+					mv: m.mv,
+					mev: m.mev,
+					mavMin: m.mavMin,
+					mavMax: m.mavMax,
+					mrv: m.mrv
+				}))
+			)
 			.returning();
 
 		const muscleMap = new Map(insertedMuscles.map((m) => [m.name, m.id]));
-		console.log(`  ✓ Inserted ${insertedMuscles.length} muscles`);
-
-		// 2. Seed volume thresholds
-		console.log('Seeding volume thresholds...');
-		const thresholdValues = volumeThresholds
-			.map((vt) => {
-				const muscleId = muscleMap.get(vt.muscle);
-				if (!muscleId) {
-					console.warn(`  ⚠ Muscle not found for threshold: ${vt.muscle}`);
-					return null;
-				}
-				return {
-					muscleId,
-					mv: vt.mv,
-					mev: vt.mev,
-					mavMin: vt.mavMin,
-					mavMax: vt.mavMax,
-					mrv: vt.mrv
-				};
-			})
-			.filter((v): v is NonNullable<typeof v> => v !== null);
-
-		if (thresholdValues.length > 0) {
-			await db.insert(muscleVolumeThreshold).values(thresholdValues);
-		}
-		console.log(`  ✓ Inserted ${thresholdValues.length} volume thresholds`);
+		console.log(`  ✓ Inserted ${insertedMuscles.length} muscles with volume thresholds`);
 
 		// 3. Seed equipment
 		console.log('Seeding equipment...');
@@ -166,8 +149,7 @@ async function seed() {
 
 		console.log('\n✅ Seed completed successfully!');
 		console.log('\n📊 Summary:');
-		console.log(`  - ${insertedMuscles.length} muscles`);
-		console.log(`  - ${thresholdValues.length} volume thresholds`);
+		console.log(`  - ${insertedMuscles.length} muscles (with volume thresholds)`);
 		console.log(`  - ${insertedEquipment.length} equipment items`);
 		console.log(`  - ${insertedExercises.length} exercises`);
 		console.log(`  - ${exerciseMuscleValues.length} exercise-muscle links`);

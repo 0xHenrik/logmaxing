@@ -11,22 +11,17 @@ export const userProfile = pgTable('user_profile', {
 	sex: text('sex')
 });
 
-// Muscles
+// Muscles (with volume thresholds merged in)
 export const muscle = pgTable('muscle', {
 	id: serial('id').primaryKey(),
 	name: text('name').notNull().unique(),
-	muscleGroup: text('muscle_group')
-});
-
-export const muscleVolumeThreshold = pgTable('muscle_volume_threshold', {
-	muscleId: integer('muscle_id')
-		.primaryKey()
-		.references(() => muscle.id, { onDelete: 'cascade' }),
-	mv: integer('mv'),
-	mev: integer('mev'),
-	mavMin: integer('mav_min'),
-	mavMax: integer('mav_max'),
-	mrv: integer('mrv')
+	muscleGroup: text('muscle_group'),
+	// Volume thresholds (sets per week)
+	mv: integer('mv'), // Maintenance Volume
+	mev: integer('mev'), // Minimum Effective Volume
+	mavMin: integer('mav_min'), // Maximum Adaptive Volume (min)
+	mavMax: integer('mav_max'), // Maximum Adaptive Volume (max)
+	mrv: integer('mrv') // Maximum Recoverable Volume
 });
 
 // Equipment
@@ -168,11 +163,7 @@ export const userProfileRelations = relations(userProfile, ({ many }) => ({
 	checkins: many(userCheckin)
 }));
 
-export const muscleRelations = relations(muscle, ({ one, many }) => ({
-	volumeThreshold: one(muscleVolumeThreshold, {
-		fields: [muscle.id],
-		references: [muscleVolumeThreshold.muscleId]
-	}),
+export const muscleRelations = relations(muscle, ({ many }) => ({
 	exerciseMuscles: many(exerciseMuscle)
 }));
 
@@ -268,7 +259,6 @@ export const userCheckinRelations = relations(userCheckin, ({ one }) => ({
 
 // Export inferred types
 export type Muscle = InferSelectModel<typeof muscle>;
-export type MuscleVolumeThreshold = InferSelectModel<typeof muscleVolumeThreshold>;
 export type Equipment = InferSelectModel<typeof equipment>;
 export type Exercise = InferSelectModel<typeof exercise>;
 export type ExerciseMuscle = InferSelectModel<typeof exerciseMuscle>;

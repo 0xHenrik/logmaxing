@@ -63,22 +63,18 @@ Currently in beta - no authentication required. API keys coming soon.
 							'application/json': {
 								schema: {
 									type: 'array',
-									items: { $ref: '#/components/schemas/MuscleWithVolume' }
+									items: { $ref: '#/components/schemas/Muscle' }
 								},
 								example: [
 									{
 										id: 1,
 										name: 'Chest',
 										muscleGroup: 'Push',
-										volumeThreshold: {
-											muscleId: 1,
-											mev: 10,
-											mav: 16,
-											mrv: 22,
-											frequencyMin: 2,
-											frequencyMax: 4,
-											notes: 'Most respond well to 12-20 sets/week'
-										}
+										mv: 4,
+										mev: 6,
+										mavMin: 10,
+										mavMax: 16,
+										mrv: 22
 									}
 								]
 							}
@@ -95,13 +91,18 @@ Currently in beta - no authentication required. API keys coming soon.
 					required: true,
 					content: {
 						'application/json': {
-							schema: { $ref: '#/components/schemas/MuscleWithVolumeInput' }
+							schema: { $ref: '#/components/schemas/MuscleInput' }
 						}
 					}
 				},
 				responses: {
-					'200': {
-						description: 'Muscle created successfully'
+					'201': {
+						description: 'Muscle created successfully',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Muscle' }
+							}
+						}
 					},
 					'401': {
 						description: 'Unauthorized'
@@ -129,7 +130,7 @@ Currently in beta - no authentication required. API keys coming soon.
 						description: 'Muscle details',
 						content: {
 							'application/json': {
-								schema: { $ref: '#/components/schemas/MuscleWithVolume' }
+								schema: { $ref: '#/components/schemas/Muscle' }
 							}
 						}
 					},
@@ -141,7 +142,7 @@ Currently in beta - no authentication required. API keys coming soon.
 			put: {
 				tags: ['Muscles'],
 				summary: 'Update a muscle',
-				description: 'Updates a muscle and its volume thresholds. Requires authentication.',
+				description: 'Updates a muscle. Requires authentication.',
 				operationId: 'updateMuscle',
 				parameters: [
 					{
@@ -156,7 +157,7 @@ Currently in beta - no authentication required. API keys coming soon.
 					required: true,
 					content: {
 						'application/json': {
-							schema: { $ref: '#/components/schemas/MuscleWithVolumeInput' }
+							schema: { $ref: '#/components/schemas/MuscleInput' }
 						}
 					}
 				},
@@ -175,7 +176,7 @@ Currently in beta - no authentication required. API keys coming soon.
 			delete: {
 				tags: ['Muscles'],
 				summary: 'Delete a muscle',
-				description: 'Deletes a muscle and its volume thresholds. Requires authentication.',
+				description: 'Deletes a muscle. Requires authentication.',
 				operationId: 'deleteMuscle',
 				parameters: [
 					{
@@ -378,77 +379,55 @@ Currently in beta - no authentication required. API keys coming soon.
 		schemas: {
 			Muscle: {
 				type: 'object',
+				description: 'Muscle with volume landmarks based on Renaissance Periodization research',
 				properties: {
 					id: { type: 'integer', description: 'Unique muscle ID' },
 					name: { type: 'string', description: 'Muscle name' },
 					muscleGroup: {
 						type: 'string',
-						enum: ['Push', 'Pull', 'Legs', 'Core'],
+						enum: ['Push', 'Pull', 'Legs', 'Core', 'Other'],
 						description: 'Category for workout splits'
-					}
-				},
-				required: ['id', 'name', 'muscleGroup']
-			},
-			VolumeThreshold: {
-				type: 'object',
-				description: 'Volume landmarks based on Renaissance Periodization research',
-				properties: {
-					muscleId: { type: 'integer' },
+					},
+					mv: {
+						type: 'integer',
+						nullable: true,
+						description: 'Maintenance Volume - minimum sets/week to maintain muscle'
+					},
 					mev: {
 						type: 'integer',
-						description: 'Minimum Effective Volume - minimum sets/week to maintain muscle'
+						nullable: true,
+						description: 'Minimum Effective Volume - sets/week to start growing'
 					},
-					mav: {
+					mavMin: {
 						type: 'integer',
-						description: 'Maximum Adaptive Volume - optimal sets/week for most people'
+						nullable: true,
+						description: 'Maximum Adaptive Volume (minimum) - optimal sets/week range start'
+					},
+					mavMax: {
+						type: 'integer',
+						nullable: true,
+						description: 'Maximum Adaptive Volume (maximum) - optimal sets/week range end'
 					},
 					mrv: {
 						type: 'integer',
+						nullable: true,
 						description: 'Maximum Recoverable Volume - sets/week ceiling before overtraining'
-					},
-					frequencyMin: {
-						type: 'integer',
-						description: 'Minimum recommended training frequency per week'
-					},
-					frequencyMax: {
-						type: 'integer',
-						description: 'Maximum recommended training frequency per week'
-					},
-					notes: { type: 'string', nullable: true }
-				}
-			},
-			MuscleWithVolume: {
-				allOf: [
-					{ $ref: '#/components/schemas/Muscle' },
-					{
-						type: 'object',
-						properties: {
-							volumeThreshold: {
-								$ref: '#/components/schemas/VolumeThreshold',
-								nullable: true
-							}
-						}
 					}
-				]
+				},
+				required: ['id', 'name']
 			},
-			MuscleWithVolumeInput: {
+			MuscleInput: {
 				type: 'object',
 				properties: {
 					name: { type: 'string' },
-					muscleGroup: { type: 'string', enum: ['Push', 'Pull', 'Legs', 'Core'] },
-					volumeThreshold: {
-						type: 'object',
-						properties: {
-							mev: { type: 'integer' },
-							mav: { type: 'integer' },
-							mrv: { type: 'integer' },
-							frequencyMin: { type: 'integer' },
-							frequencyMax: { type: 'integer' },
-							notes: { type: 'string', nullable: true }
-						}
-					}
+					muscleGroup: { type: 'string', enum: ['Push', 'Pull', 'Legs', 'Core', 'Other'] },
+					mv: { type: 'integer', nullable: true },
+					mev: { type: 'integer', nullable: true },
+					mavMin: { type: 'integer', nullable: true },
+					mavMax: { type: 'integer', nullable: true },
+					mrv: { type: 'integer', nullable: true }
 				},
-				required: ['name', 'muscleGroup']
+				required: ['name']
 			},
 			Equipment: {
 				type: 'object',
