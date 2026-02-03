@@ -1,8 +1,8 @@
 # Logmaxing Status
 
-> Last updated: 2026-02-02
+> Last updated: 2026-02-03
 
-## Current Phase: 1 - API Foundation (60% complete)
+## Current Phase: 1 - API Foundation (80% complete)
 
 ### Done
 
@@ -14,49 +14,49 @@
 - [x] Rate limiting middleware
 - [x] OpenAPI 3.1 documentation at /docs
 - [x] Valibot validation on POST endpoints
+- [x] **Volume Calculation Engine** (core differentiator)
+- [x] Testing infrastructure (Vitest)
 
 ### Next Up (Priority Order)
 
-| #   | Item                              | Why                                             | Size |
-| --- | --------------------------------- | ----------------------------------------------- | ---- |
-| 1   | **Volume Calculation Engine**     | Core differentiator - "No competitor does this" | L    |
-| 2   | Input validation on PUT endpoints | Security requirement                            | S    |
-| 3   | API Key System                    | Enables revenue validation gates                | M    |
-| 4   | Testing infrastructure (Vitest)   | Volume engine needs tests                       | M    |
+| #   | Item                              | Why                              | Size |
+| --- | --------------------------------- | -------------------------------- | ---- |
+| 1   | Input validation on PUT endpoints | Security requirement             | S    |
+| 2   | API Key System                    | Enables revenue validation gates | M    |
 
 ### Blocking Nothing
 
-Data foundation is complete. Volume engine can start immediately.
+Volume engine complete. Ready for API key system.
 
 ---
 
-## Volume Engine Spec (Next Task)
+## Volume Engine (Complete)
 
-**Input**: Array of sets `{ exercise_id, reps, weight, rpe }`
+**Endpoint**: `POST /api/volume`
 
-**Output**: Volume per muscle with status
+**Input**: Exercise-based or direct muscle input
 
+```json
+{
+	"exercises": [{ "exerciseId": 1, "sets": 4 }],
+	"directVolume": [{ "muscleId": 1, "sets": 6 }]
+}
 ```
-GET /api/volume
-→ { muscles: [{ name: "chest", sets: 12, status: "optimal" }] }
 
-POST /api/volume (planned)
-→ Volume + recommendations
+**Output**: Volume per muscle with zone status
+
+```json
+{
+  "muscles": [{ "muscleId": 1, "muscleName": "Chest", "effectiveSets": 8, "zone": "under", "thresholds": {...} }],
+  "summary": { "totalMuscles": 1, "under": ["Chest"], "optimal": [], "over": [] }
+}
 ```
 
-**Logic**:
+**Files**:
 
-1. Look up exercise → muscle mappings (exerciseMuscle table)
-2. Weight sets by activation % (1 set × 0.7 activation = 0.7 volume)
-3. Sum weekly volume per muscle
-4. Compare to MEV/MAV/MRV thresholds
-5. Return status: "under" | "optimal" | "over"
-
-**Files created**:
-
-- `src/lib/server/api/volume.ts` - Core calculation ✅
-- `src/routes/api/volume/+server.ts` - REST endpoint ✅
-- `src/routes/api/volume/analyze/+server.ts` - Analysis endpoint (planned)
+- `src/lib/server/api/volume.ts` - Core calculation engine
+- `src/routes/api/volume/+server.ts` - REST endpoint (GET for discovery, POST for calculation)
+- `src/lib/server/api/volume.test.ts` - Unit tests
 
 ---
 
