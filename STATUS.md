@@ -37,10 +37,10 @@ Data foundation is complete. Volume engine can start immediately.
 **Output**: Volume per muscle with status
 
 ```
-POST /api/workouts/volume
+GET /api/volume
 → { muscles: [{ name: "chest", sets: 12, status: "optimal" }] }
 
-POST /api/workouts/analyze
+POST /api/volume (planned)
 → Volume + recommendations
 ```
 
@@ -52,11 +52,11 @@ POST /api/workouts/analyze
 4. Compare to MEV/MAV/MRV thresholds
 5. Return status: "under" | "optimal" | "over"
 
-**Files to create**:
+**Files created**:
 
-- `src/lib/server/api/volume.ts` - Core calculation
-- `src/routes/api/workouts/volume/+server.ts` - REST endpoint
-- `src/routes/api/workouts/analyze/+server.ts` - Analysis endpoint
+- `src/lib/server/api/volume.ts` - Core calculation ✅
+- `src/routes/api/volume/+server.ts` - REST endpoint ✅
+- `src/routes/api/volume/analyze/+server.ts` - Analysis endpoint (planned)
 
 ---
 

@@ -102,6 +102,18 @@ export interface VolumeSummary {
 }
 
 /**
+ * Warning generated during volume calculation.
+ */
+export interface VolumeWarning {
+	/** Warning type identifier */
+	type: 'unknown_muscle_id';
+	/** Human-readable warning message */
+	message: string;
+	/** The muscle ID that caused the warning */
+	muscleId: number;
+}
+
+/**
  * Full response from volume calculation.
  */
 export interface VolumeCalculationResult {
@@ -109,6 +121,8 @@ export interface VolumeCalculationResult {
 	muscles: MuscleVolumeResult[];
 	/** Summary of zones across all muscles */
 	summary: VolumeSummary;
+	/** Warnings generated during calculation (e.g., unknown muscle IDs) */
+	warnings: VolumeWarning[];
 }
 
 /**
@@ -453,7 +467,7 @@ export async function calculateVolumeFromExercises(
  * - Direct input counts 1:1 for the specified muscle
  * - When both are provided for the same muscle, sets are summed
  * - Results are sorted alphabetically by muscle name
- * - Unknown muscle IDs in directVolume are silently skipped
+ * - Unknown muscle IDs in directVolume generate a warning (not silently skipped)
  */
 export async function calculateVolume(request: VolumeRequest): Promise<VolumeCalculationResult> {
 	const { exercises = [], directVolume = [] } = request;
@@ -464,6 +478,9 @@ export async function calculateVolume(request: VolumeRequest): Promise<VolumeCal
 		number,
 		{ muscleName: string; rawSets: number; thresholds: MuscleThresholds }
 	>();
+
+	// Track warnings
+	const warnings: VolumeWarning[] = [];
 
 	// Process exercise-based input
 	if (exercises.length > 0) {
@@ -480,7 +497,12 @@ export async function calculateVolume(request: VolumeRequest): Promise<VolumeCal
 		for (const directVolumeEntry of directVolume) {
 			const muscleData = musclesData.get(directVolumeEntry.muscleId);
 			if (!muscleData) {
-				// Skip unknown muscle IDs (could also throw error)
+				// Warn about unknown muscle IDs instead of silently skipping
+				warnings.push({
+					type: 'unknown_muscle_id',
+					message: `Unknown muscle ID: ${directVolumeEntry.muscleId}. This muscle was skipped in calculations.`,
+					muscleId: directVolumeEntry.muscleId
+				});
 				continue;
 			}
 
@@ -520,5 +542,5 @@ export async function calculateVolume(request: VolumeRequest): Promise<VolumeCal
 	// Build summary
 	const summary = buildSummary(muscleResults);
 
-	return { muscles: muscleResults, summary };
+	return { muscles: muscleResults, summary, warnings };
 }
