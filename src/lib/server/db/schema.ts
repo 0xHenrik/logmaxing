@@ -1,6 +1,15 @@
 // schema.ts - PostgreSQL version for Supabase
 import { type InferSelectModel, relations } from 'drizzle-orm';
-import { text, serial, unique, integer, pgTable, doublePrecision } from 'drizzle-orm/pg-core';
+import {
+	text,
+	serial,
+	unique,
+	integer,
+	pgTable,
+	boolean,
+	timestamp,
+	doublePrecision
+} from 'drizzle-orm/pg-core';
 
 // Users
 export const userProfile = pgTable('user_profile', {
@@ -156,11 +165,30 @@ export const userCheckin = pgTable('user_checkin', {
 	notes: text('notes')
 });
 
+// API Keys
+export const apiKey = pgTable('api_key', {
+	id: serial('id').primaryKey(),
+	userId: integer('user_id')
+		.notNull()
+		.references(() => userProfile.id, { onDelete: 'cascade' }),
+	keyPrefix: text('key_prefix').notNull(), // First 16 chars for display (e.g., 'lmx_abc1234...')
+	keyHash: text('key_hash').notNull().unique(), // SHA-256 hash of full key
+	name: text('name').notNull(), // User-provided label (e.g., "Mobile App")
+	tier: text('tier').notNull().default('free'), // free | developer | pro | enterprise
+	lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+	usageCount: integer('usage_count').notNull().default(0),
+	createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+	expiresAt: timestamp('expires_at', { withTimezone: true }),
+	revokedAt: timestamp('revoked_at', { withTimezone: true }),
+	isActive: boolean('is_active').notNull().default(true)
+});
+
 // ============ RELATIONS ============
 
 export const userProfileRelations = relations(userProfile, ({ many }) => ({
 	programs: many(program),
-	checkins: many(userCheckin)
+	checkins: many(userCheckin),
+	apiKeys: many(apiKey)
 }));
 
 export const muscleRelations = relations(muscle, ({ many }) => ({
@@ -257,9 +285,17 @@ export const userCheckinRelations = relations(userCheckin, ({ one }) => ({
 	})
 }));
 
+export const apiKeyRelations = relations(apiKey, ({ one }) => ({
+	user: one(userProfile, {
+		fields: [apiKey.userId],
+		references: [userProfile.id]
+	})
+}));
+
 // Export inferred types
 export type Muscle = InferSelectModel<typeof muscle>;
 export type Equipment = InferSelectModel<typeof equipment>;
 export type Exercise = InferSelectModel<typeof exercise>;
 export type ExerciseMuscle = InferSelectModel<typeof exerciseMuscle>;
 export type ExerciseEquipment = InferSelectModel<typeof exerciseEquipment>;
+export type ApiKey = InferSelectModel<typeof apiKey>;

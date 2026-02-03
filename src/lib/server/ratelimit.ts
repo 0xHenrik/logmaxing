@@ -55,10 +55,29 @@ if (!building && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
 	});
 }
 
-export async function checkRateLimit(identifier: string): Promise<RateLimitResult> {
+export type RateLimitTier = keyof typeof RATE_LIMITS;
+
+export async function checkRateLimit(
+	identifier: string,
+	tier: RateLimitTier = 'free'
+): Promise<RateLimitResult> {
+	const limits = RATE_LIMITS[tier];
+	const windowMs = 24 * 60 * 60 * 1000; // 1 day
+
 	// Use Upstash in production, memory in development
 	if (upstashRatelimit) {
-		const result = await upstashRatelimit.limit(identifier);
+		// Create a tier-specific limiter for accurate limits
+		const tierLimiter = new Ratelimit({
+			redis: new Redis({
+				url: env.UPSTASH_REDIS_REST_URL!,
+				token: env.UPSTASH_REDIS_REST_TOKEN!
+			}),
+			limiter: Ratelimit.slidingWindow(limits.requests, limits.window),
+			analytics: true,
+			prefix: `logmaxing:ratelimit:${tier}`
+		});
+
+		const result = await tierLimiter.limit(identifier);
 		return {
 			success: result.success,
 			limit: result.limit,
@@ -68,8 +87,7 @@ export async function checkRateLimit(identifier: string): Promise<RateLimitResul
 	}
 
 	// Fallback to in-memory rate limiting (development only)
-	const windowMs = 24 * 60 * 60 * 1000; // 1 day
-	return getMemoryRateLimit(identifier, RATE_LIMITS.free.requests, windowMs);
+	return getMemoryRateLimit(identifier, limits.requests, windowMs);
 }
 
 export function getRateLimitHeaders(result: RateLimitResult): Record<string, string> {
