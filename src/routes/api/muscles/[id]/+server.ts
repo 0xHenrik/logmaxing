@@ -24,8 +24,14 @@ export const PUT: RequestHandler = async ({ request, params }) => {
 		const result = v.parse(updateMuscleSchema, json);
 		await updateMuscle(Number(id), result);
 		return new Response('updated', { status: 200 });
-	} catch (e) {
-		return Response.json(e, { status: 400 });
+	} catch (error) {
+		if (error instanceof v.ValiError) {
+			return Response.json({ error: 'Validation error', issues: error.issues }, { status: 400 });
+		}
+		if (error instanceof Error) {
+			return Response.json({ error: error.message }, { status: 400 });
+		}
+		return Response.json({ error: 'Internal server error' }, { status: 500 });
 	}
 };
 
