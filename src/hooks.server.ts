@@ -1,16 +1,55 @@
 import type { Handle } from '@sveltejs/kit';
 
-import { checkRateLimit, getRateLimitHeaders } from '$lib/server/ratelimit';
+import { type ValidatedApiKey, validateApiKey } from '$lib/server/api/apiKeys';
+import { type RateLimitTier, checkRateLimit, getRateLimitHeaders } from '$lib/server/ratelimit';
 
 export const handle: Handle = async ({ event, resolve }) => {
-	// Only rate limit API routes (except openapi.json which is docs)
+	// Only process API routes (except openapi.json which is docs)
 	if (event.url.pathname.startsWith('/api/') && !event.url.pathname.includes('openapi.json')) {
-		// Get identifier: API key header, or IP address
-		const apiKey = event.request.headers.get('X-API-Key');
-		const ip = event.getClientAddress();
-		const identifier = apiKey || `ip:${ip}`;
+		const apiKeyHeader = event.request.headers.get('X-API-Key');
 
-		const result = await checkRateLimit(identifier);
+		let validatedKey: ValidatedApiKey | null = null;
+		let tier: RateLimitTier = 'free';
+
+		// Require API key for all endpoints
+		if (!apiKeyHeader) {
+			return new Response(
+				JSON.stringify({
+					error: 'Unauthorized',
+					message: 'API key required. Include X-API-Key header in your request.'
+				}),
+				{
+					status: 401,
+					headers: { 'Content-Type': 'application/json' }
+				}
+			);
+		}
+
+		// Validate the API key
+		validatedKey = await validateApiKey(apiKeyHeader);
+
+		if (!validatedKey) {
+			return new Response(
+				JSON.stringify({
+					error: 'Unauthorized',
+					message: 'Invalid or revoked API key'
+				}),
+				{
+					status: 401,
+					headers: { 'Content-Type': 'application/json' }
+				}
+			);
+		}
+
+		// Use key ID for rate limiting (more accurate than raw key)
+		const identifier = `key:${validatedKey.id}`;
+		tier = validatedKey.tier;
+
+		// Attach to locals for route handlers
+		event.locals.apiKey = validatedKey;
+
+		// Check rate limit based on tier
+		const result = await checkRateLimit(identifier, tier);
 		const headers = getRateLimitHeaders(result);
 
 		if (!result.success) {

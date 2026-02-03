@@ -18,7 +18,8 @@
 		"db:generate": "drizzle-kit generate",
 		"db:migrate": "drizzle-kit migrate",
 		"db:studio": "drizzle-kit studio",
-		"seed": "npx tsx seed.ts"
+		"seed": "npx tsx seed.ts",
+		"seed:api-keys": "npx tsx seed-api-keys.ts"
 	},
 	"devDependencies": {
 		"@eslint/compat": "^2.0.1",

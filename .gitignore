@@ -27,6 +27,7 @@ vite.config.ts.timestamp-*
 
 # Claude Code (local only)
 .claude/
+bruno-collection/
 CLAUDE.md
 CLAUDE_SETUP_GUIDE.md
 PROJECT_PLAN.md
