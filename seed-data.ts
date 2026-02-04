@@ -3,38 +3,302 @@
 // Volume landmarks based on Renaissance Periodization guidelines
 // EMG weightings based on ACE studies, Bret Contreras, and academic research
 
+// ============ TYPE DEFINITIONS ============
+
+// Difficulty levels for exercises
+export type Difficulty = 'beginner' | 'intermediate' | 'advanced';
+
+// Movement patterns - how the exercise moves through space
+export type MovementPattern =
+	| 'horizontal_push'
+	| 'vertical_push'
+	| 'horizontal_pull'
+	| 'vertical_pull'
+	| 'hip_hinge'
+	| 'squat'
+	| 'lunge'
+	| 'isolation'
+	| 'carry'
+	| 'rotation';
+
+// Planes of motion
+export type Plane = 'sagittal' | 'frontal' | 'transverse' | 'multi';
+
+// Where the exercise is hardest in the range of motion
+export type ForceProfile = 'ascending' | 'descending' | 'bell' | 'constant';
+
+// Where the muscle is loaded most (stretch-mediated hypertrophy)
+export type StretchPosition = 'lengthened' | 'mid' | 'shortened';
+
+// Stability requirements
+export type StabilityDemand = 'high' | 'medium' | 'low';
+
+// Grip types
+export type GripType = 'overhand' | 'underhand' | 'neutral' | 'mixed' | 'none';
+
+// ============ MUSCLES ============
+
 // Muscles with volume landmarks from RP (sets per week for whole muscle group)
 // MV = Maintenance Volume, MEV = Minimum Effective Volume
 // MAV = Maximum Adaptive Volume (range), MRV = Maximum Recoverable Volume
 export const muscles = [
 	// Push muscles
-	{ name: 'Chest', muscleGroup: 'Push', mv: 4, mev: 6, mavMin: 10, mavMax: 16, mrv: 22 },
-	{ name: 'Front Delts', muscleGroup: 'Push', mv: 0, mev: 0, mavMin: 6, mavMax: 8, mrv: 12 },
-	{ name: 'Side Delts', muscleGroup: 'Push', mv: 6, mev: 8, mavMin: 16, mavMax: 22, mrv: 26 },
-	{ name: 'Triceps', muscleGroup: 'Push', mv: 4, mev: 6, mavMin: 10, mavMax: 14, mrv: 18 },
+	{
+		name: 'Chest',
+		muscleGroup: 'Push',
+		mv: 4,
+		mev: 6,
+		mavMin: 10,
+		mavMax: 16,
+		mrv: 22,
+		recoveryDays: 2,
+		frequencyMin: 2,
+		frequencyMax: 3,
+		trainingTips: 'Responds well to stretch-focused movements like flyes. Full ROM important.'
+	},
+	{
+		name: 'Front Delts',
+		muscleGroup: 'Push',
+		mv: 0,
+		mev: 0,
+		mavMin: 6,
+		mavMax: 8,
+		mrv: 12,
+		recoveryDays: 2,
+		frequencyMin: 2,
+		frequencyMax: 3,
+		trainingTips: 'Gets significant volume from pressing. Direct work often unnecessary.'
+	},
+	{
+		name: 'Side Delts',
+		muscleGroup: 'Push',
+		mv: 6,
+		mev: 8,
+		mavMin: 16,
+		mavMax: 22,
+		mrv: 26,
+		recoveryDays: 1,
+		frequencyMin: 3,
+		frequencyMax: 6,
+		trainingTips: 'Recovers quickly, can train frequently. Responds to high volume.'
+	},
+	{
+		name: 'Triceps',
+		muscleGroup: 'Push',
+		mv: 4,
+		mev: 6,
+		mavMin: 10,
+		mavMax: 14,
+		mrv: 18,
+		recoveryDays: 2,
+		frequencyMin: 2,
+		frequencyMax: 3,
+		trainingTips: 'Long head needs overhead work for full stretch.'
+	},
 
 	// Pull muscles
-	{ name: 'Lats', muscleGroup: 'Pull', mv: 8, mev: 10, mavMin: 14, mavMax: 22, mrv: 25 },
-	{ name: 'Upper Back', muscleGroup: 'Pull', mv: 6, mev: 8, mavMin: 12, mavMax: 18, mrv: 22 },
-	{ name: 'Rear Delts', muscleGroup: 'Pull', mv: 0, mev: 6, mavMin: 12, mavMax: 16, mrv: 22 },
-	{ name: 'Biceps', muscleGroup: 'Pull', mv: 6, mev: 8, mavMin: 14, mavMax: 20, mrv: 26 },
-	{ name: 'Forearms', muscleGroup: 'Pull', mv: 2, mev: 4, mavMin: 8, mavMax: 14, mrv: 20 },
-	{ name: 'Traps', muscleGroup: 'Pull', mv: 0, mev: 0, mavMin: 12, mavMax: 20, mrv: 26 },
+	{
+		name: 'Lats',
+		muscleGroup: 'Pull',
+		mv: 8,
+		mev: 10,
+		mavMin: 14,
+		mavMax: 22,
+		mrv: 25,
+		recoveryDays: 2,
+		frequencyMin: 2,
+		frequencyMax: 3,
+		trainingTips: 'Full stretch at top of pulldowns/rows is important. Vary grip widths.'
+	},
+	{
+		name: 'Upper Back',
+		muscleGroup: 'Pull',
+		mv: 6,
+		mev: 8,
+		mavMin: 12,
+		mavMax: 18,
+		mrv: 22,
+		recoveryDays: 2,
+		frequencyMin: 2,
+		frequencyMax: 4,
+		trainingTips: 'Focus on scapular retraction. Rows with elbows high target this well.'
+	},
+	{
+		name: 'Rear Delts',
+		muscleGroup: 'Pull',
+		mv: 0,
+		mev: 6,
+		mavMin: 12,
+		mavMax: 16,
+		mrv: 22,
+		recoveryDays: 1,
+		frequencyMin: 3,
+		frequencyMax: 6,
+		trainingTips: 'Recovers quickly. Face pulls and reverse flyes are staples.'
+	},
+	{
+		name: 'Biceps',
+		muscleGroup: 'Pull',
+		mv: 6,
+		mev: 8,
+		mavMin: 14,
+		mavMax: 20,
+		mrv: 26,
+		recoveryDays: 2,
+		frequencyMin: 2,
+		frequencyMax: 4,
+		trainingTips: 'Include incline curls for long head stretch. Variety of grips helps.'
+	},
+	{
+		name: 'Forearms',
+		muscleGroup: 'Pull',
+		mv: 2,
+		mev: 4,
+		mavMin: 8,
+		mavMax: 14,
+		mrv: 20,
+		recoveryDays: 1,
+		frequencyMin: 2,
+		frequencyMax: 4,
+		trainingTips: 'Often trained indirectly. Direct work good for grip-focused goals.'
+	},
+	{
+		name: 'Traps',
+		muscleGroup: 'Pull',
+		mv: 0,
+		mev: 0,
+		mavMin: 12,
+		mavMax: 20,
+		mrv: 26,
+		recoveryDays: 2,
+		frequencyMin: 2,
+		frequencyMax: 4,
+		trainingTips: 'Upper traps from shrugs, mid/lower from rows. Pause at top.'
+	},
 
 	// Legs
-	{ name: 'Quads', muscleGroup: 'Legs', mv: 6, mev: 8, mavMin: 12, mavMax: 18, mrv: 22 },
-	{ name: 'Hamstrings', muscleGroup: 'Legs', mv: 4, mev: 6, mavMin: 10, mavMax: 16, mrv: 20 },
-	{ name: 'Glutes', muscleGroup: 'Legs', mv: 0, mev: 0, mavMin: 4, mavMax: 12, mrv: 16 },
-	{ name: 'Calves', muscleGroup: 'Legs', mv: 6, mev: 8, mavMin: 12, mavMax: 16, mrv: 20 },
-	{ name: 'Adductors', muscleGroup: 'Legs', mv: 4, mev: 6, mavMin: 8, mavMax: 14, mrv: 18 },
+	{
+		name: 'Quads',
+		muscleGroup: 'Legs',
+		mv: 6,
+		mev: 8,
+		mavMin: 12,
+		mavMax: 18,
+		mrv: 22,
+		recoveryDays: 3,
+		frequencyMin: 2,
+		frequencyMax: 3,
+		trainingTips: 'Deep ROM squats and leg press. Leg extensions for isolation.'
+	},
+	{
+		name: 'Hamstrings',
+		muscleGroup: 'Legs',
+		mv: 4,
+		mev: 6,
+		mavMin: 10,
+		mavMax: 16,
+		mrv: 20,
+		recoveryDays: 3,
+		frequencyMin: 2,
+		frequencyMax: 3,
+		trainingTips: 'Need both hip extension (RDL) and knee flexion (leg curls) work.'
+	},
+	{
+		name: 'Glutes',
+		muscleGroup: 'Legs',
+		mv: 0,
+		mev: 0,
+		mavMin: 4,
+		mavMax: 12,
+		mrv: 16,
+		recoveryDays: 2,
+		frequencyMin: 2,
+		frequencyMax: 4,
+		trainingTips: 'Hip thrusts at shortened position, RDLs at lengthened. Both patterns important.'
+	},
+	{
+		name: 'Calves',
+		muscleGroup: 'Legs',
+		mv: 6,
+		mev: 8,
+		mavMin: 12,
+		mavMax: 16,
+		mrv: 20,
+		recoveryDays: 1,
+		frequencyMin: 3,
+		frequencyMax: 6,
+		trainingTips: 'High frequency works well. Full stretch at bottom, pause at top.'
+	},
+	{
+		name: 'Adductors',
+		muscleGroup: 'Legs',
+		mv: 4,
+		mev: 6,
+		mavMin: 8,
+		mavMax: 14,
+		mrv: 18,
+		recoveryDays: 2,
+		frequencyMin: 2,
+		frequencyMax: 3,
+		trainingTips: 'Wide stance squats and dedicated machine work. Often undertrained.'
+	},
 
 	// Core
-	{ name: 'Abs', muscleGroup: 'Core', mv: 0, mev: 0, mavMin: 15, mavMax: 20, mrv: 25 },
-	{ name: 'Obliques', muscleGroup: 'Core', mv: 0, mev: 0, mavMin: 8, mavMax: 16, mrv: 20 },
-	{ name: 'Lower Back', muscleGroup: 'Core', mv: 4, mev: 6, mavMin: 10, mavMax: 16, mrv: 20 },
+	{
+		name: 'Abs',
+		muscleGroup: 'Core',
+		mv: 0,
+		mev: 0,
+		mavMin: 15,
+		mavMax: 20,
+		mrv: 25,
+		recoveryDays: 1,
+		frequencyMin: 3,
+		frequencyMax: 6,
+		trainingTips: 'Weighted exercises for hypertrophy. Full spinal flexion for peak contraction.'
+	},
+	{
+		name: 'Obliques',
+		muscleGroup: 'Core',
+		mv: 0,
+		mev: 0,
+		mavMin: 8,
+		mavMax: 16,
+		mrv: 20,
+		recoveryDays: 1,
+		frequencyMin: 2,
+		frequencyMax: 4,
+		trainingTips:
+			'Anti-rotation and rotation both work. Avoid heavy side bends if waist size matters.'
+	},
+	{
+		name: 'Lower Back',
+		muscleGroup: 'Core',
+		mv: 4,
+		mev: 6,
+		mavMin: 10,
+		mavMax: 16,
+		mrv: 20,
+		recoveryDays: 2,
+		frequencyMin: 2,
+		frequencyMax: 3,
+		trainingTips: 'Back extensions are the staple. Often trained indirectly from deadlifts.'
+	},
 
 	// Other
-	{ name: 'Neck', muscleGroup: 'Other', mv: 0, mev: 4, mavMin: 10, mavMax: 14, mrv: 20 }
+	{
+		name: 'Neck',
+		muscleGroup: 'Other',
+		mv: 0,
+		mev: 4,
+		mavMin: 10,
+		mavMax: 14,
+		mrv: 20,
+		recoveryDays: 1,
+		frequencyMin: 3,
+		frequencyMax: 6,
+		trainingTips: 'Train all directions - flexion, extension, lateral. Light weights, high reps.'
+	}
 ] as const;
 
 export const equipment = [
@@ -148,9 +412,22 @@ export const equipment = [
 	{ name: 'Wrist Wraps' }
 ] as const;
 
+// ============ EXERCISES ============
+
 // Exercise definitions with EMG-based muscle activation data
 // activationType: 'primary' = main target, 'secondary' = synergist
 // weighting: 1.0 = full set counts toward volume
+
+// Biomechanics fields (optional - will be null if not provided):
+// - difficulty: beginner | intermediate | advanced
+// - movementPattern: horizontal_push | vertical_push | horizontal_pull | vertical_pull | hip_hinge | squat | lunge | isolation | carry | rotation
+// - plane: sagittal | frontal | transverse | multi
+// - forceProfile: ascending (hardest at lockout) | descending (hardest at stretch) | bell (hardest in middle) | constant
+// - stretchPosition: lengthened | mid | shortened (where the target muscle is loaded)
+// - stabilityDemand: high (free weights) | medium (dumbbells/cables) | low (machines)
+// - unilateral: true for single-arm/leg movements
+// - gripType: overhand | underhand | neutral | mixed | none
+
 export const exercises = [
 	// ==================== CHEST ====================
 	{
@@ -160,6 +437,29 @@ export const exercises = [
 			{ muscle: 'Chest', activation: 'primary', weighting: 1.0 },
 			{ muscle: 'Front Delts', activation: 'secondary', weighting: 0.7 },
 			{ muscle: 'Triceps', activation: 'secondary', weighting: 0.6 }
+		],
+		// Full biomechanics data (example)
+		difficulty: 'intermediate' as const,
+		movementPattern: 'horizontal_push' as const,
+		plane: 'sagittal' as const,
+		jointActions: ['shoulder_horizontal_adduction', 'elbow_extension'],
+		forceProfile: 'ascending' as const,
+		stretchPosition: 'lengthened' as const,
+		stabilityDemand: 'high' as const,
+		unilateral: false,
+		gripType: 'overhand' as const,
+		instructions: [
+			'Lie on bench with eyes under the bar',
+			'Grip bar slightly wider than shoulder width',
+			'Unrack and position bar over chest',
+			'Lower bar to mid-chest with elbows at 45-75 degrees',
+			'Press bar up in a slight arc back to starting position'
+		],
+		tips: [
+			'Keep shoulder blades retracted and depressed',
+			'Maintain slight arch in lower back',
+			'Touch chest without bouncing',
+			'Drive feet into floor for leg drive'
 		]
 	},
 	{
@@ -814,6 +1114,29 @@ export const exercises = [
 		muscles: [
 			{ muscle: 'Biceps', activation: 'primary', weighting: 1.0 },
 			{ muscle: 'Forearms', activation: 'secondary', weighting: 0.3 }
+		],
+		// Full biomechanics data (example - stretch-focused isolation)
+		difficulty: 'beginner' as const,
+		movementPattern: 'isolation' as const,
+		plane: 'sagittal' as const,
+		jointActions: ['elbow_flexion'],
+		forceProfile: 'descending' as const, // Hardest at bottom (stretched position)
+		stretchPosition: 'lengthened' as const, // Biceps fully stretched at bottom
+		stabilityDemand: 'medium' as const,
+		unilateral: false,
+		gripType: 'underhand' as const,
+		instructions: [
+			'Set bench to 45-60 degree incline',
+			'Sit back with arms hanging straight down',
+			'Keep upper arms stationary throughout',
+			'Curl weights up while supinating forearms',
+			'Lower under control to full stretch'
+		],
+		tips: [
+			'Let arms hang completely at the bottom',
+			'Avoid swinging or using momentum',
+			'Focus on the stretch at the bottom',
+			'Control the negative for maximum tension'
 		]
 	},
 	{

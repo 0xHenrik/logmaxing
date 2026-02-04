@@ -38,7 +38,7 @@ async function seed() {
 		await db.delete(muscle);
 		console.log('  ✓ Existing data cleared');
 
-		// 1. Seed muscles (with volume thresholds included)
+		// 1. Seed muscles (with volume thresholds and recovery data)
 		console.log('Seeding muscles...');
 		const insertedMuscles = await db
 			.insert(muscle)
@@ -50,7 +50,12 @@ async function seed() {
 					mev: m.mev,
 					mavMin: m.mavMin,
 					mavMax: m.mavMax,
-					mrv: m.mrv
+					mrv: m.mrv,
+					// New recovery fields
+					recoveryDays: m.recoveryDays,
+					frequencyMin: m.frequencyMin,
+					frequencyMax: m.frequencyMax,
+					trainingTips: m.trainingTips
 				}))
 			)
 			.returning();
@@ -68,11 +73,27 @@ async function seed() {
 		const equipmentMap = new Map(insertedEquipment.map((e) => [e.name, e.id]));
 		console.log(`  ✓ Inserted ${insertedEquipment.length} equipment items`);
 
-		// 4. Seed exercises
+		// 4. Seed exercises (with optional biomechanics data)
 		console.log('Seeding exercises...');
 		const insertedExercises = await db
 			.insert(exercise)
-			.values(exercises.map((e) => ({ name: e.name })))
+			.values(
+				exercises.map((e) => ({
+					name: e.name,
+					// Biomechanics fields - will be null if not provided in seed data
+					difficulty: 'difficulty' in e ? (e.difficulty as string) : null,
+					instructions: 'instructions' in e ? (e.instructions as string[]) : null,
+					tips: 'tips' in e ? (e.tips as string[]) : null,
+					movementPattern: 'movementPattern' in e ? (e.movementPattern as string) : null,
+					plane: 'plane' in e ? (e.plane as string) : null,
+					jointActions: 'jointActions' in e ? (e.jointActions as string[]) : null,
+					forceProfile: 'forceProfile' in e ? (e.forceProfile as string) : null,
+					stretchPosition: 'stretchPosition' in e ? (e.stretchPosition as string) : null,
+					stabilityDemand: 'stabilityDemand' in e ? (e.stabilityDemand as string) : null,
+					unilateral: 'unilateral' in e ? (e.unilateral as boolean) : false,
+					gripType: 'gripType' in e ? (e.gripType as string) : null
+				}))
+			)
 			.returning();
 
 		const exerciseMap = new Map(insertedExercises.map((e) => [e.name, e.id]));

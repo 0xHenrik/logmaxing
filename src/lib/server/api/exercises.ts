@@ -19,7 +19,10 @@ export type ExerciseWithDetails = Exercise & {
 	equipment: (ExerciseEquipment & { equipment: Equipment })[];
 };
 
-export type ExerciseListItem = Exercise & {
+// List view - lightweight, just what's needed for browsing
+export type ExerciseListItem = {
+	id: number;
+	name: string;
 	primaryMuscle: string | null;
 	muscleGroup: string | null;
 };
