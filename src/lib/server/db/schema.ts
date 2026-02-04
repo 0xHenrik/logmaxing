@@ -2,6 +2,7 @@
 import { type InferSelectModel, relations } from 'drizzle-orm';
 import {
 	text,
+	jsonb,
 	serial,
 	unique,
 	integer,
@@ -25,12 +26,19 @@ export const muscle = pgTable('muscle', {
 	id: serial('id').primaryKey(),
 	name: text('name').notNull().unique(),
 	muscleGroup: text('muscle_group'),
+
 	// Volume thresholds (sets per week)
 	mv: integer('mv'), // Maintenance Volume
 	mev: integer('mev'), // Minimum Effective Volume
 	mavMin: integer('mav_min'), // Maximum Adaptive Volume (min)
 	mavMax: integer('mav_max'), // Maximum Adaptive Volume (max)
-	mrv: integer('mrv') // Maximum Recoverable Volume
+	mrv: integer('mrv'), // Maximum Recoverable Volume
+
+	// Recovery & frequency
+	recoveryDays: integer('recovery_days'), // Typical days needed to recover
+	frequencyMin: integer('frequency_min'), // Minimum sessions per week
+	frequencyMax: integer('frequency_max'), // Maximum sessions per week
+	trainingTips: text('training_tips') // General training guidance for this muscle
 });
 
 // Equipment
@@ -42,7 +50,26 @@ export const equipment = pgTable('equipment', {
 // Exercises
 export const exercise = pgTable('exercise', {
 	id: serial('id').primaryKey(),
-	name: text('name').notNull().unique()
+	name: text('name').notNull().unique(),
+
+	// Basic metadata
+	difficulty: text('difficulty'), // beginner | intermediate | advanced
+	instructions: jsonb('instructions').$type<string[]>(), // Step-by-step instructions
+	tips: jsonb('tips').$type<string[]>(), // Form cues and tips
+
+	// Biomechanics - Movement classification
+	movementPattern: text('movement_pattern'), // horizontal_push | vertical_push | horizontal_pull | vertical_pull | hip_hinge | squat | lunge | isolation | carry | rotation
+	plane: text('plane'), // sagittal | frontal | transverse | multi
+	jointActions: jsonb('joint_actions').$type<string[]>(), // e.g. ['shoulder_flexion', 'elbow_extension']
+
+	// Biomechanics - Force characteristics
+	forceProfile: text('force_profile'), // ascending | descending | bell | constant
+	stretchPosition: text('stretch_position'), // lengthened | mid | shortened (where muscle is loaded)
+
+	// Biomechanics - Stability & execution
+	stabilityDemand: text('stability_demand'), // high | medium | low
+	unilateral: boolean('unilateral').default(false), // single arm/leg movement
+	gripType: text('grip_type') // overhand | underhand | neutral | mixed | none
 });
 
 // Exercise ↔ Muscle (many-to-many with attributes)
