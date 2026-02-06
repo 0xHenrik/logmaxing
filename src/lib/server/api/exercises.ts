@@ -25,6 +25,8 @@ export type ExerciseListItem = {
 	name: string;
 	primaryMuscle: string | null;
 	muscleGroup: string | null;
+	difficulty: string | null;
+	movementPattern: string | null;
 };
 
 export interface ExerciseFilters {
@@ -32,12 +34,33 @@ export interface ExerciseFilters {
 	muscleId?: number;
 	muscleGroup?: string;
 	equipmentId?: number;
+	// Biomechanics filters
+	difficulty?: string;
+	movementPattern?: string;
+	forceProfile?: string;
+	stretchPosition?: string;
+	unilateral?: boolean;
+	gripType?: string;
+	// Pagination
 	limit?: number;
 	offset?: number;
 }
 
 export async function getExercises(filters: ExerciseFilters = {}): Promise<ExerciseListItem[]> {
-	const { search, muscleId, muscleGroup, equipmentId, limit = 50, offset = 0 } = filters;
+	const {
+		search,
+		muscleId,
+		muscleGroup,
+		equipmentId,
+		difficulty,
+		movementPattern,
+		forceProfile,
+		stretchPosition,
+		unilateral,
+		gripType,
+		limit = 50,
+		offset = 0
+	} = filters;
 
 	// Build the query with filters
 	let query = db
@@ -45,7 +68,9 @@ export async function getExercises(filters: ExerciseFilters = {}): Promise<Exerc
 			id: exercise.id,
 			name: exercise.name,
 			primaryMuscle: muscle.name,
-			muscleGroup: muscle.muscleGroup
+			muscleGroup: muscle.muscleGroup,
+			difficulty: exercise.difficulty,
+			movementPattern: exercise.movementPattern
 		})
 		.from(exercise)
 		.leftJoin(exerciseMuscle, eq(exercise.id, exerciseMuscle.exerciseId))
@@ -86,6 +111,31 @@ export async function getExercises(filters: ExerciseFilters = {}): Promise<Exerc
 		} else {
 			return []; // No exercises match this equipment
 		}
+	}
+
+	// Biomechanics filters
+	if (difficulty) {
+		conditions.push(eq(exercise.difficulty, difficulty));
+	}
+
+	if (movementPattern) {
+		conditions.push(eq(exercise.movementPattern, movementPattern));
+	}
+
+	if (forceProfile) {
+		conditions.push(eq(exercise.forceProfile, forceProfile));
+	}
+
+	if (stretchPosition) {
+		conditions.push(eq(exercise.stretchPosition, stretchPosition));
+	}
+
+	if (unilateral !== undefined) {
+		conditions.push(eq(exercise.unilateral, unilateral));
+	}
+
+	if (gripType) {
+		conditions.push(eq(exercise.gripType, gripType));
 	}
 
 	// Only include primary muscle activations for the list view
