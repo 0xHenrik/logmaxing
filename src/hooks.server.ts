@@ -51,8 +51,12 @@ const securityHeaders: Handle = async ({ event, resolve }) => {
 };
 
 const apiAuth: Handle = async ({ event, resolve }) => {
-	// Only process API routes (except openapi.json which is docs)
-	if (!event.url.pathname.startsWith('/api/') || event.url.pathname.includes('openapi.json')) {
+	// Only process API routes (except openapi.json and waitlist which are public)
+	if (
+		!event.url.pathname.startsWith('/api/') ||
+		event.url.pathname.includes('openapi.json') ||
+		event.url.pathname.startsWith('/api/waitlist')
+	) {
 		return resolve(event);
 	}
 

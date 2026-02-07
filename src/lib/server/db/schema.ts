@@ -319,6 +319,14 @@ export const apiKeyRelations = relations(apiKey, ({ one }) => ({
 	})
 }));
 
+// Waitlist
+export const waitlist = pgTable('waitlist', {
+	id: serial('id').primaryKey(),
+	email: text('email').notNull().unique(),
+	source: text('source').default('landing_page'),
+	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull()
+});
+
 // Export inferred types
 export type Muscle = InferSelectModel<typeof muscle>;
 export type Equipment = InferSelectModel<typeof equipment>;
@@ -326,3 +334,4 @@ export type Exercise = InferSelectModel<typeof exercise>;
 export type ExerciseMuscle = InferSelectModel<typeof exerciseMuscle>;
 export type ExerciseEquipment = InferSelectModel<typeof exerciseEquipment>;
 export type ApiKey = InferSelectModel<typeof apiKey>;
+export type Waitlist = InferSelectModel<typeof waitlist>;

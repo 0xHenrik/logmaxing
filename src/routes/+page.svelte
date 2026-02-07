@@ -1,4 +1,35 @@
 <script lang="ts">
+	let waitlistEmail = $state('');
+	let waitlistStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
+	let waitlistMessage = $state('');
+
+	async function submitWaitlist(e: SubmitEvent) {
+		e.preventDefault();
+		if (!waitlistEmail.trim()) return;
+
+		waitlistStatus = 'loading';
+		try {
+			const res = await fetch('/api/waitlist', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ email: waitlistEmail.trim() })
+			});
+			const data = await res.json();
+
+			if (res.ok) {
+				waitlistStatus = 'success';
+				waitlistMessage = data.message;
+				waitlistEmail = '';
+			} else {
+				waitlistStatus = 'error';
+				waitlistMessage = data.error;
+			}
+		} catch {
+			waitlistStatus = 'error';
+			waitlistMessage = 'Something went wrong. Please try again.';
+		}
+	}
+
 	const endpoints = [
 		{
 			method: 'GET',
@@ -365,19 +396,47 @@
 			</div>
 		</section>
 
-		<!-- CTA -->
-		<section class="border-t border-zinc-800/50 px-6 py-20" aria-label="Call to action">
+		<!-- CTA / Waitlist -->
+		<section
+			id="waitlist"
+			class="border-t border-zinc-800/50 px-6 py-20"
+			aria-label="Join the waitlist"
+		>
 			<div class="mx-auto max-w-2xl text-center">
-				<h2 class="mb-4 text-3xl font-bold">Ready to build?</h2>
+				<h2 class="mb-4 text-3xl font-bold">Get early access</h2>
 				<p class="mb-8 text-zinc-400">
-					Get your free API key and start querying 176 exercises with EMG data in minutes.
+					Join the waitlist to get notified when the developer dashboard launches. Early subscribers
+					get priority access and extended free tier limits.
 				</p>
-				<a
-					href="/docs"
-					class="inline-block rounded-lg bg-purple-600 px-8 py-3 font-medium text-white transition-colors hover:bg-purple-500"
-				>
-					Get Started Free
-				</a>
+
+				{#if waitlistStatus === 'success'}
+					<div class="rounded-lg border border-green-500/30 bg-green-500/10 px-6 py-4">
+						<p class="font-medium text-green-300">{waitlistMessage}</p>
+						<p class="mt-1 text-sm text-green-400/70">We'll be in touch soon.</p>
+					</div>
+				{:else}
+					<form onsubmit={submitWaitlist} class="mx-auto flex max-w-md gap-3">
+						<input
+							type="email"
+							bind:value={waitlistEmail}
+							placeholder="you@example.com"
+							required
+							disabled={waitlistStatus === 'loading'}
+							class="flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-sm text-zinc-100 placeholder-zinc-500 transition-colors focus:border-purple-500 focus:outline-none disabled:opacity-50"
+						/>
+						<button
+							type="submit"
+							disabled={waitlistStatus === 'loading'}
+							class="shrink-0 rounded-lg bg-purple-600 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-purple-500 disabled:opacity-50"
+						>
+							{waitlistStatus === 'loading' ? 'Joining...' : 'Join Waitlist'}
+						</button>
+					</form>
+					{#if waitlistStatus === 'error'}
+						<p class="mt-3 text-sm text-red-400">{waitlistMessage}</p>
+					{/if}
+					<p class="mt-4 text-xs text-zinc-500">No spam. Only product updates.</p>
+				{/if}
 			</div>
 		</section>
 	</main>
