@@ -2,26 +2,33 @@ export const openApiSpec = {
 	openapi: '3.1.0',
 	info: {
 		title: 'Logmaxing Training Science API',
-		version: '1.0.0',
+		version: '1.1.0',
 		description: `
 The first public API for exercise science data. Access EMG-backed muscle activation data,
 volume landmarks (MEV/MAV/MRV), and a comprehensive exercise database.
 
 ## Authentication
-All endpoints require an API key passed via the \`X-API-Key\` header.
+All endpoints require an API key passed via the \`X-API-Key\` header (except \`/waitlist\` and \`/openapi.json\`).
 
 \`\`\`bash
-curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
+curl -H "X-API-Key: lmx_your_key_here" https://api.logmaxing.tech/muscles
 \`\`\`
 
 ## Rate Limits
-- **Free tier**: 100 requests/day
-- **Developer**: 5,000 requests/month ($29/mo)
-- **Pro**: 25,000 requests/month ($99/mo)
-- **Enterprise**: 100,000 requests/month ($299/mo)
+| Tier | Rate | Price |
+|------|------|-------|
+| Free | 100 requests/day | $0 |
+| Developer | ~5,000/month (170/day) | $29/mo |
+| Pro | ~25,000/month (850/day) | $99/mo |
+| Enterprise | ~100,000/month (3,400/day) | $299/mo |
+
+Rate limit headers are returned on every response:
+- \`X-RateLimit-Limit\` — Max requests for your tier
+- \`X-RateLimit-Remaining\` — Requests remaining
+- \`X-RateLimit-Reset\` — Unix timestamp when the window resets
 
 ## Base URL
-\`https://logmaxing.tech/api\`
+\`https://api.logmaxing.tech\` or \`https://logmaxing.tech/api\`
 		`.trim(),
 		contact: {
 			name: 'Logmaxing Support',
@@ -33,6 +40,10 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 		}
 	},
 	servers: [
+		{
+			url: 'https://api.logmaxing.tech',
+			description: 'Production (subdomain)'
+		},
 		{
 			url: '/api',
 			description: 'Current server'
@@ -55,7 +66,15 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 		{
 			name: 'Volume',
 			description:
-				'Training volume calculator - compute effective sets per muscle and check if you are under, optimal, or over volume thresholds'
+				'Training volume calculator — compute effective sets per muscle and check if you are under, optimal, or over volume thresholds'
+		},
+		{
+			name: 'API Keys',
+			description: 'Manage your API keys — create, list, revoke, and delete'
+		},
+		{
+			name: 'Waitlist',
+			description: 'Join the waitlist (no authentication required)'
 		}
 	],
 	paths: {
@@ -94,13 +113,16 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 								]
 							}
 						}
-					}
+					},
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'429': { $ref: '#/components/responses/RateLimited' }
 				}
 			},
 			post: {
 				tags: ['Muscles'],
 				summary: 'Create a muscle',
-				description: 'Creates a new muscle with volume thresholds. Requires authentication.',
+				description:
+					'Creates a new muscle with volume thresholds. **Requires enterprise tier API key.**',
 				operationId: 'createMuscle',
 				requestBody: {
 					required: true,
@@ -119,9 +141,11 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 							}
 						}
 					},
-					'401': {
-						description: 'Unauthorized'
-					}
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'403': { $ref: '#/components/responses/Forbidden' },
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
 				}
 			}
 		},
@@ -136,7 +160,7 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 						name: 'id',
 						in: 'path',
 						required: true,
-						schema: { type: 'integer' },
+						schema: { type: 'integer', minimum: 1 },
 						description: 'Muscle ID'
 					}
 				],
@@ -149,22 +173,32 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 							}
 						}
 					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
 					'404': {
-						description: 'Muscle not found'
-					}
+						description: 'Muscle not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Not found' }
+							}
+						}
+					},
+					'429': { $ref: '#/components/responses/RateLimited' }
 				}
 			},
 			put: {
 				tags: ['Muscles'],
 				summary: 'Update a muscle',
-				description: 'Updates a muscle. Requires authentication.',
+				description:
+					'Partially updates a muscle. All fields are optional. **Requires enterprise tier API key.**',
 				operationId: 'updateMuscle',
 				parameters: [
 					{
 						name: 'id',
 						in: 'path',
 						required: true,
-						schema: { type: 'integer' },
+						schema: { type: 'integer', minimum: 1 },
 						description: 'Muscle ID'
 					}
 				],
@@ -178,40 +212,64 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 				},
 				responses: {
 					'200': {
-						description: 'Muscle updated successfully'
+						description: 'Muscle updated successfully',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Message' },
+								example: { message: 'Updated' }
+							}
+						}
 					},
-					'401': {
-						description: 'Unauthorized'
-					},
-					'404': {
-						description: 'Muscle not found'
-					}
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'403': { $ref: '#/components/responses/Forbidden' },
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
 				}
 			},
 			delete: {
 				tags: ['Muscles'],
 				summary: 'Delete a muscle',
-				description: 'Deletes a muscle. Requires authentication.',
+				description: 'Permanently deletes a muscle. **Requires enterprise tier API key.**',
 				operationId: 'deleteMuscle',
 				parameters: [
 					{
 						name: 'id',
 						in: 'path',
 						required: true,
-						schema: { type: 'integer' },
+						schema: { type: 'integer', minimum: 1 },
 						description: 'Muscle ID'
 					}
 				],
 				responses: {
 					'200': {
-						description: 'Muscle deleted successfully'
+						description: 'Muscle deleted successfully',
+						content: {
+							'application/json': {
+								schema: {
+									type: 'object',
+									properties: {
+										message: { type: 'string' },
+										id: { type: 'integer' }
+									}
+								},
+								example: { message: 'Deleted', id: 1 }
+							}
+						}
 					},
-					'401': {
-						description: 'Unauthorized'
-					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'403': { $ref: '#/components/responses/Forbidden' },
 					'404': {
-						description: 'Muscle not found'
-					}
+						description: 'Muscle not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Not found' }
+							}
+						}
+					},
+					'429': { $ref: '#/components/responses/RateLimited' }
 				}
 			}
 		},
@@ -220,7 +278,7 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 				tags: ['Exercises'],
 				summary: 'List exercises',
 				description:
-					'Returns exercises with optional filtering by name, muscle, muscle group, or equipment. Includes primary muscle activation for each exercise.',
+					'Returns exercises with optional filtering by name, muscle, muscle group, equipment, or biomechanics. Includes primary muscle activation for each exercise.',
 				operationId: 'getExercises',
 				parameters: [
 					{
@@ -233,7 +291,7 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 					{
 						name: 'muscleId',
 						in: 'query',
-						schema: { type: 'integer' },
+						schema: { type: 'integer', minimum: 1 },
 						description: 'Filter by muscle ID'
 					},
 					{
@@ -248,7 +306,7 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 					{
 						name: 'equipmentId',
 						in: 'query',
-						schema: { type: 'integer' },
+						schema: { type: 'integer', minimum: 1 },
 						description: 'Filter by equipment ID'
 					},
 					{
@@ -287,7 +345,7 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 							type: 'string',
 							enum: ['ascending', 'descending', 'bell', 'constant']
 						},
-						description: 'Filter by force curve - where in the ROM is the exercise hardest'
+						description: 'Filter by force curve — where in the ROM is the exercise hardest'
 					},
 					{
 						name: 'stretchPosition',
@@ -297,7 +355,7 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 							enum: ['lengthened', 'mid', 'shortened']
 						},
 						description:
-							'Filter by where the muscle is loaded - critical for hypertrophy (lengthened = more growth stimulus)'
+							'Filter by where the muscle is loaded — critical for hypertrophy (lengthened = more growth stimulus)'
 					},
 					{
 						name: 'unilateral',
@@ -317,13 +375,13 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 					{
 						name: 'limit',
 						in: 'query',
-						schema: { type: 'integer', default: 50, maximum: 100 },
+						schema: { type: 'integer', default: 50, minimum: 1, maximum: 100 },
 						description: 'Maximum number of results (default: 50, max: 100)'
 					},
 					{
 						name: 'offset',
 						in: 'query',
-						schema: { type: 'integer', default: 0 },
+						schema: { type: 'integer', default: 0, minimum: 0 },
 						description: 'Number of results to skip for pagination'
 					}
 				],
@@ -360,7 +418,10 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 								]
 							}
 						}
-					}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'429': { $ref: '#/components/responses/RateLimited' }
 				}
 			}
 		},
@@ -369,14 +430,14 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 				tags: ['Exercises'],
 				summary: 'Get exercise details',
 				description:
-					'Returns detailed exercise information including all muscle activations (with EMG-based weightings) and compatible equipment.',
+					'Returns detailed exercise information including all muscle activations (with EMG-based weightings), biomechanics classification, and compatible equipment.',
 				operationId: 'getExercise',
 				parameters: [
 					{
 						name: 'id',
 						in: 'path',
 						required: true,
-						schema: { type: 'integer' },
+						schema: { type: 'integer', minimum: 1 },
 						description: 'Exercise ID'
 					}
 				],
@@ -443,9 +504,18 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 							}
 						}
 					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
 					'404': {
-						description: 'Exercise not found'
-					}
+						description: 'Exercise not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Not found' }
+							}
+						}
+					},
+					'429': { $ref: '#/components/responses/RateLimited' }
 				}
 			}
 		},
@@ -471,7 +541,9 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 								]
 							}
 						}
-					}
+					},
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'429': { $ref: '#/components/responses/RateLimited' }
 				}
 			}
 		},
@@ -480,17 +552,19 @@ curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
 				tags: ['Volume'],
 				summary: 'Get volume thresholds',
 				description:
-					'Returns all muscle volume thresholds (MEV/MAV/MRV) for reference. Use POST to calculate effective volume.',
+					'Returns all muscle volume thresholds (MEV/MAV/MRV) and sample exercises for reference. Use POST to calculate effective volume.',
 				operationId: 'getVolumeThresholds',
 				responses: {
 					'200': {
-						description: 'Volume thresholds for all muscles',
+						description: 'Volume thresholds for all muscles with sample exercises',
 						content: {
 							'application/json': {
 								schema: { $ref: '#/components/schemas/VolumeThresholdsResponse' }
 							}
 						}
-					}
+					},
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'429': { $ref: '#/components/responses/RateLimited' }
 				}
 			},
 			post: {
@@ -503,7 +577,7 @@ Two input modes:
 - **Exercise-based**: Pass exercise IDs + sets, uses EMG-weighted activations
 - **Direct**: Pass muscle IDs + sets directly
 
-The response tells you exactly which muscles are undertrained, optimal, or overtrained based on Renaissance Periodization science.
+You can combine both in a single request. The response tells you exactly which muscles are undertrained, optimal, or overtrained based on Renaissance Periodization science.
 				`.trim(),
 				operationId: 'calculateVolume',
 				requestBody: {
@@ -515,7 +589,7 @@ The response tells you exactly which muscles are undertrained, optimal, or overt
 								exerciseBased: {
 									summary: 'Exercise-based input',
 									description:
-										'Calculate volume from exercises - automatically applies EMG weightings',
+										'Calculate volume from exercises — automatically applies EMG weightings',
 									value: {
 										exercises: [
 											{ exerciseId: 1, sets: 4 },
@@ -532,6 +606,14 @@ The response tells you exactly which muscles are undertrained, optimal, or overt
 											{ muscleId: 1, sets: 12 },
 											{ muscleId: 3, sets: 8 }
 										]
+									}
+								},
+								combined: {
+									summary: 'Combined input',
+									description: 'Use both exercise-based and direct input together',
+									value: {
+										exercises: [{ exerciseId: 1, sets: 4 }],
+										directVolume: [{ muscleId: 3, sets: 6 }]
 									}
 								}
 							}
@@ -571,15 +653,283 @@ The response tells you exactly which muscles are undertrained, optimal, or overt
 							}
 						}
 					},
-					'400': {
-						description: 'Invalid input - must provide exercises or directVolume'
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/keys': {
+			get: {
+				tags: ['API Keys'],
+				summary: 'List your API keys',
+				description:
+					'Returns all API keys belonging to the authenticated user. Key hashes are never exposed — only the prefix is shown.',
+				operationId: 'listApiKeys',
+				responses: {
+					'200': {
+						description: 'List of API keys',
+						content: {
+							'application/json': {
+								schema: {
+									type: 'array',
+									items: { $ref: '#/components/schemas/ApiKey' }
+								},
+								example: [
+									{
+										id: 1,
+										keyPrefix: 'lmx_abc123def456',
+										name: 'My App',
+										tier: 'free',
+										isActive: true,
+										usageCount: 42,
+										lastUsedAt: '2026-02-07T10:30:00Z',
+										createdAt: '2026-01-15T08:00:00Z',
+										expiresAt: null,
+										revokedAt: null
+									}
+								]
+							}
+						}
+					},
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			},
+			post: {
+				tags: ['API Keys'],
+				summary: 'Create a new API key',
+				description: `
+Creates a new API key. The raw key is returned **only once** in the response — store it securely.
+
+Per-tier key limits:
+| Tier | Max active keys |
+|------|----------------|
+| Free | 5 |
+| Developer | 10 |
+| Pro | 25 |
+| Enterprise | 100 |
+				`.trim(),
+				operationId: 'createApiKey',
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/CreateApiKeyInput' },
+							example: {
+								name: 'My Mobile App',
+								expiresAt: '2027-01-01T00:00:00Z'
+							}
+						}
 					}
+				},
+				responses: {
+					'201': {
+						description:
+							'API key created. The `rawKey` field contains the full key — **save it now, it will not be shown again.**',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/ApiKeyCreated' },
+								example: {
+									key: {
+										id: 2,
+										keyPrefix: 'lmx_xyz789abc012',
+										name: 'My Mobile App',
+										tier: 'free',
+										isActive: true,
+										createdAt: '2026-02-07T12:00:00Z'
+									},
+									rawKey: 'lmx_xYz789AbC012...',
+									warning: 'Store this key securely. It will not be shown again.'
+								}
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'403': {
+						description: 'Key limit reached for your tier',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: {
+									error: 'Key limit reached',
+									message: 'Maximum of 5 active keys for your free tier.'
+								}
+							}
+						}
+					},
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/keys/{id}': {
+			get: {
+				tags: ['API Keys'],
+				summary: 'Get API key details',
+				description:
+					'Returns details for a single API key. Only returns keys owned by the authenticated user.',
+				operationId: 'getApiKey',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'API key ID'
+					}
+				],
+				responses: {
+					'200': {
+						description: 'API key details',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/ApiKey' }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Key not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Key not found' }
+							}
+						}
+					},
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			},
+			delete: {
+				tags: ['API Keys'],
+				summary: 'Delete an API key',
+				description:
+					'Permanently deletes an API key. This action is irreversible. For a soft delete that preserves audit trail, use the revoke endpoint instead.',
+				operationId: 'deleteApiKey',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'API key ID'
+					}
+				],
+				responses: {
+					'204': {
+						description: 'Key deleted successfully (no content)'
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Key not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Key not found' }
+							}
+						}
+					},
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/keys/{id}/revoke': {
+			post: {
+				tags: ['API Keys'],
+				summary: 'Revoke an API key',
+				description:
+					'Soft-deletes an API key by marking it as revoked. The key remains in the database for audit purposes but can no longer authenticate requests.',
+				operationId: 'revokeApiKey',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'API key ID'
+					}
+				],
+				responses: {
+					'200': {
+						description: 'Key revoked successfully',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Message' },
+								example: { message: 'Key revoked successfully' }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Key not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Key not found' }
+							}
+						}
+					},
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/waitlist': {
+			post: {
+				tags: ['Waitlist'],
+				summary: 'Join the waitlist',
+				description:
+					'Add an email to the waitlist. **No API key required.** Rate limited to 10 requests/day per IP address. Returns a uniform response regardless of whether the email is new or already exists (to prevent enumeration).',
+				operationId: 'joinWaitlist',
+				security: [],
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/WaitlistInput' },
+							example: { email: 'user@example.com' }
+						}
+					}
+				},
+				responses: {
+					'200': {
+						description: 'Request accepted',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Message' },
+								example: { message: "Thanks! If this email is new, you're on the list." }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
 				}
 			}
 		}
 	},
 	components: {
 		schemas: {
+			Error: {
+				type: 'object',
+				properties: {
+					error: { type: 'string', description: 'Error type or short message' },
+					message: { type: 'string', description: 'Detailed error message (optional)' }
+				},
+				required: ['error']
+			},
+			Message: {
+				type: 'object',
+				properties: {
+					message: { type: 'string' }
+				},
+				required: ['message']
+			},
 			Muscle: {
 				type: 'object',
 				description: 'Muscle with volume landmarks based on Renaissance Periodization research',
@@ -594,27 +944,27 @@ The response tells you exactly which muscles are undertrained, optimal, or overt
 					mv: {
 						type: 'integer',
 						nullable: true,
-						description: 'Maintenance Volume - minimum sets/week to maintain muscle'
+						description: 'Maintenance Volume — minimum sets/week to maintain muscle'
 					},
 					mev: {
 						type: 'integer',
 						nullable: true,
-						description: 'Minimum Effective Volume - sets/week to start growing'
+						description: 'Minimum Effective Volume — sets/week to start growing'
 					},
 					mavMin: {
 						type: 'integer',
 						nullable: true,
-						description: 'Maximum Adaptive Volume (minimum) - optimal sets/week range start'
+						description: 'Maximum Adaptive Volume (minimum) — optimal sets/week range start'
 					},
 					mavMax: {
 						type: 'integer',
 						nullable: true,
-						description: 'Maximum Adaptive Volume (maximum) - optimal sets/week range end'
+						description: 'Maximum Adaptive Volume (maximum) — optimal sets/week range end'
 					},
 					mrv: {
 						type: 'integer',
 						nullable: true,
-						description: 'Maximum Recoverable Volume - sets/week ceiling before overtraining'
+						description: 'Maximum Recoverable Volume — sets/week ceiling before overtraining'
 					},
 					recoveryDays: {
 						type: 'integer',
@@ -648,7 +998,11 @@ The response tells you exactly which muscles are undertrained, optimal, or overt
 					mev: { type: 'integer', nullable: true },
 					mavMin: { type: 'integer', nullable: true },
 					mavMax: { type: 'integer', nullable: true },
-					mrv: { type: 'integer', nullable: true }
+					mrv: { type: 'integer', nullable: true },
+					recoveryDays: { type: 'integer', nullable: true },
+					frequencyMin: { type: 'integer', nullable: true },
+					frequencyMax: { type: 'integer', nullable: true },
+					trainingTips: { type: 'string', nullable: true }
 				},
 				required: ['name']
 			},
@@ -699,7 +1053,7 @@ The response tells you exactly which muscles are undertrained, optimal, or overt
 						type: 'string',
 						enum: ['lengthened', 'mid', 'shortened'],
 						nullable: true,
-						description: 'Where muscle is loaded - critical for hypertrophy'
+						description: 'Where muscle is loaded — critical for hypertrophy'
 					},
 					primaryMuscle: { type: 'string', nullable: true },
 					muscleGroup: {
@@ -792,13 +1146,13 @@ The response tells you exactly which muscles are undertrained, optimal, or overt
 						enum: ['ascending', 'descending', 'bell', 'constant'],
 						nullable: true,
 						description:
-							'Where in ROM the exercise is hardest - ascending = top, descending = bottom, bell = middle'
+							'Where in ROM the exercise is hardest — ascending = top, descending = bottom, bell = middle'
 					},
 					stretchPosition: {
 						type: 'string',
 						enum: ['lengthened', 'mid', 'shortened'],
 						nullable: true,
-						description: 'Where muscle is loaded - lengthened position = more hypertrophy stimulus'
+						description: 'Where muscle is loaded — lengthened position = more hypertrophy stimulus'
 					},
 					stabilityDemand: {
 						type: 'string',
@@ -844,63 +1198,84 @@ The response tells you exactly which muscles are undertrained, optimal, or overt
 			},
 			VolumeInput: {
 				type: 'object',
-				description: 'Input for volume calculation - use either exercises or directVolume',
+				description:
+					'Input for volume calculation. Provide exercises, directVolume, or both. At least one must be non-empty.',
 				properties: {
 					exercises: {
 						type: 'array',
 						items: {
 							type: 'object',
 							properties: {
-								exerciseId: { type: 'integer', description: 'Exercise ID' },
-								sets: { type: 'integer', description: 'Number of sets performed' }
+								exerciseId: { type: 'integer', minimum: 1, description: 'Exercise ID' },
+								sets: {
+									type: 'integer',
+									minimum: 1,
+									maximum: 50,
+									description: 'Number of sets performed'
+								}
 							},
 							required: ['exerciseId', 'sets']
 						},
-						description: 'List of exercises with sets - EMG weightings applied automatically'
+						maxItems: 50,
+						description: 'List of exercises with sets — EMG weightings applied automatically'
 					},
 					directVolume: {
 						type: 'array',
 						items: {
 							type: 'object',
 							properties: {
-								muscleId: { type: 'integer', description: 'Muscle ID' },
-								sets: { type: 'integer', description: 'Direct sets for this muscle' }
+								muscleId: { type: 'integer', minimum: 1, description: 'Muscle ID' },
+								sets: {
+									type: 'integer',
+									minimum: 1,
+									maximum: 100,
+									description: 'Direct sets for this muscle'
+								}
 							},
 							required: ['muscleId', 'sets']
 						},
-						description: 'Direct muscle volume input - bypasses exercise lookup'
+						maxItems: 25,
+						description: 'Direct muscle volume input — bypasses exercise lookup'
 					}
 				}
 			},
 			VolumeThresholdsResponse: {
 				type: 'object',
-				description: 'Reference thresholds for all muscles',
+				description: 'Reference thresholds and sample exercises for building requests',
 				properties: {
 					muscles: {
 						type: 'array',
 						items: {
 							type: 'object',
 							properties: {
-								muscleId: { type: 'integer' },
-								muscleName: { type: 'string' },
-								thresholds: {
-									type: 'object',
-									properties: {
-										mev: { type: 'integer', description: 'Minimum Effective Volume' },
-										mavMin: {
-											type: 'integer',
-											description: 'Maximum Adaptive Volume (min)'
-										},
-										mavMax: {
-											type: 'integer',
-											description: 'Maximum Adaptive Volume (max)'
-										},
-										mrv: { type: 'integer', description: 'Maximum Recoverable Volume' }
+								id: { type: 'integer' },
+								name: { type: 'string' },
+								mev: { type: 'integer', description: 'Minimum Effective Volume' },
+								mrv: { type: 'integer', description: 'Maximum Recoverable Volume' }
+							}
+						}
+					},
+					sampleExercises: {
+						type: 'array',
+						items: {
+							type: 'object',
+							properties: {
+								id: { type: 'integer' },
+								name: { type: 'string' },
+								muscles: {
+									type: 'array',
+									items: {
+										type: 'object',
+										properties: {
+											muscleId: { type: 'integer' },
+											weighting: { type: 'number', nullable: true }
+										}
 									}
 								}
 							}
 						}
-					}
+					},
+					hint: { type: 'string' }
 				}
 			},
 			VolumeResponse: {
@@ -916,12 +1291,12 @@ The response tells you exactly which muscles are undertrained, optimal, or overt
 								muscleName: { type: 'string' },
 								effectiveSets: {
 									type: 'number',
-									description: 'Calculated effective sets (may be weighted)'
+									description: 'Calculated effective sets (EMG-weighted when from exercises)'
 								},
 								zone: {
 									type: 'string',
 									enum: ['under', 'optimal', 'over'],
-									description: 'Volume zone - under MEV, between MEV-MRV (optimal), or over MRV'
+									description: 'Volume zone — under MEV, between MEV-MRV (optimal), or over MRV'
 								},
 								thresholds: {
 									type: 'object',
@@ -934,6 +1309,11 @@ The response tells you exactly which muscles are undertrained, optimal, or overt
 								}
 							}
 						}
+					},
+					warnings: {
+						type: 'array',
+						items: { type: 'string' },
+						description: 'Warnings about unknown muscle IDs or other issues'
 					},
 					summary: {
 						type: 'object',
@@ -957,6 +1337,150 @@ The response tells you exactly which muscles are undertrained, optimal, or overt
 						}
 					}
 				}
+			},
+			ApiKey: {
+				type: 'object',
+				description: 'API key metadata (the actual key hash is never exposed)',
+				properties: {
+					id: { type: 'integer' },
+					keyPrefix: {
+						type: 'string',
+						description:
+							'First 16 characters of the key for identification (e.g., lmx_abc123def456)'
+					},
+					name: { type: 'string', description: 'Human-readable key name' },
+					tier: {
+						type: 'string',
+						enum: ['free', 'developer', 'pro', 'enterprise'],
+						description: 'Rate limit tier'
+					},
+					isActive: { type: 'boolean' },
+					usageCount: { type: 'integer', description: 'Total requests made with this key' },
+					lastUsedAt: {
+						type: 'string',
+						format: 'date-time',
+						nullable: true,
+						description: 'Last time this key was used'
+					},
+					createdAt: { type: 'string', format: 'date-time' },
+					expiresAt: {
+						type: 'string',
+						format: 'date-time',
+						nullable: true,
+						description: 'Key expiration date (null = no expiry)'
+					},
+					revokedAt: {
+						type: 'string',
+						format: 'date-time',
+						nullable: true,
+						description: 'When the key was revoked (null = active)'
+					}
+				},
+				required: ['id', 'keyPrefix', 'name', 'tier', 'isActive']
+			},
+			CreateApiKeyInput: {
+				type: 'object',
+				properties: {
+					name: {
+						type: 'string',
+						minLength: 1,
+						maxLength: 100,
+						description: 'Human-readable name for the key'
+					},
+					expiresAt: {
+						type: 'string',
+						format: 'date-time',
+						description: 'Optional expiration date (ISO 8601)'
+					}
+				},
+				required: ['name']
+			},
+			ApiKeyCreated: {
+				type: 'object',
+				description: 'Response when creating a new API key',
+				properties: {
+					key: { $ref: '#/components/schemas/ApiKey' },
+					rawKey: {
+						type: 'string',
+						description: 'The full API key — **store this securely, it will not be shown again**'
+					},
+					warning: { type: 'string' }
+				},
+				required: ['key', 'rawKey', 'warning']
+			},
+			WaitlistInput: {
+				type: 'object',
+				properties: {
+					email: {
+						type: 'string',
+						format: 'email',
+						maxLength: 255,
+						description: 'Email address to add to the waitlist'
+					}
+				},
+				required: ['email']
+			}
+		},
+		responses: {
+			Unauthorized: {
+				description: 'Missing or invalid API key',
+				content: {
+					'application/json': {
+						schema: { $ref: '#/components/schemas/Error' },
+						example: { error: 'API key required', message: 'Include X-API-Key header' }
+					}
+				}
+			},
+			Forbidden: {
+				description: 'Insufficient permissions (enterprise tier required)',
+				content: {
+					'application/json': {
+						schema: { $ref: '#/components/schemas/Error' },
+						example: { error: 'Forbidden: admin access required' }
+					}
+				}
+			},
+			ValidationError: {
+				description: 'Invalid request parameters or body',
+				content: {
+					'application/json': {
+						schema: { $ref: '#/components/schemas/Error' },
+						example: { error: 'Invalid ID parameter' }
+					}
+				}
+			},
+			UnsupportedMediaType: {
+				description: 'Request body must be JSON',
+				content: {
+					'application/json': {
+						schema: { $ref: '#/components/schemas/Error' },
+						example: { error: 'Content-Type must be application/json' }
+					}
+				}
+			},
+			RateLimited: {
+				description: 'Rate limit exceeded',
+				content: {
+					'application/json': {
+						schema: {
+							type: 'object',
+							properties: {
+								error: { type: 'string' },
+								retryAfter: {
+									type: 'integer',
+									description: 'Seconds until the rate limit resets'
+								}
+							}
+						},
+						example: { error: 'Rate limit exceeded', retryAfter: 3600 }
+					}
+				},
+				headers: {
+					'Retry-After': {
+						schema: { type: 'integer' },
+						description: 'Seconds until the rate limit resets'
+					}
+				}
 			}
 		},
 		securitySchemes: {
@@ -964,7 +1488,8 @@ The response tells you exactly which muscles are undertrained, optimal, or overt
 				type: 'apiKey',
 				in: 'header',
 				name: 'X-API-Key',
-				description: 'API key for authentication. Format: lmx_...'
+				description:
+					'API key for authentication. Format: `lmx_...` (44 characters). Pass via the X-API-Key header.'
 			}
 		}
 	},

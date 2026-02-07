@@ -1,5 +1,6 @@
 import type { Handle } from '@sveltejs/kit';
 
+import { env } from '$env/dynamic/private';
 import { sequence } from '@sveltejs/kit/hooks';
 
 import { type ValidatedApiKey, validateApiKey } from '$lib/server/api/apiKeys';
@@ -51,7 +52,8 @@ const securityHeaders: Handle = async ({ event, resolve }) => {
 };
 
 const apiAuth: Handle = async ({ event, resolve }) => {
-	const isApiSubdomain = event.url.host === 'api.logmaxing.tech';
+	const apiHost = env.API_HOST || 'api.logmaxing.tech';
+	const isApiSubdomain = event.url.host === apiHost;
 	const pathname = event.url.pathname;
 
 	// Determine if this request needs API auth:
@@ -70,9 +72,26 @@ const apiAuth: Handle = async ({ event, resolve }) => {
 	}
 
 	const apiKeyHeader = event.request.headers.get('X-API-Key');
+	const clientIp = event.getClientAddress();
 
 	let validatedKey: ValidatedApiKey | null = null;
 	let tier: RateLimitTier = 'free';
+
+	// Rate-limit authentication attempts per IP to prevent brute force
+	const authRl = await checkRateLimit(`auth_attempt:${clientIp}`, 'auth_attempt');
+	if (!authRl.success) {
+		return new Response(
+			JSON.stringify({
+				error: 'Too Many Requests',
+				message: 'Too many authentication attempts. Please try again later.',
+				retryAfter: Math.ceil((authRl.reset - Date.now()) / 1000)
+			}),
+			{
+				status: 429,
+				headers: { 'Content-Type': 'application/json' }
+			}
+		);
+	}
 
 	// Require API key for all endpoints
 	if (!apiKeyHeader) {

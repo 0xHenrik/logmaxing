@@ -1,6 +1,6 @@
 # Logmaxing Status
 
-> Last updated: 2026-02-04
+> Last updated: 2026-02-07
 
 ## Next Session Quick Start
 
@@ -9,19 +9,19 @@ pnpm dev                    # Start server
 pnpm seed:api-keys          # Get test API keys
 ```
 
-**Where we left off:** Tier 1 complete (filters working). Next: Update OpenAPI docs, then Tier 2/3.
+**Where we left off:** Phase 1 complete. Security hardening done. OpenAPI docs fully updated (v1.1.0). Next: Tier 2 features or revenue pipeline.
 
 **Test the API:**
 
 ```bash
-curl -H "X-API-Key: <key>" "http://localhost:5173/api/exercises?difficulty=beginner&forceProfile=descending"
+curl -H "X-API-Key: <key>" "https://api.logmaxing.tech/exercises?difficulty=beginner&forceProfile=descending"
 ```
 
 ---
 
 ## Current Phase: 2 - Make It Sellable
 
-Phase 1 (API Foundation) is **complete**. Now focused on making the API worth paying for.
+Phase 1 (API Foundation) is **complete**. Security is hardened. Docs are comprehensive.
 
 ### Phase 1 Completed
 
@@ -29,54 +29,81 @@ Phase 1 (API Foundation) is **complete**. Now focused on making the API worth pa
 - [x] Exercise database (176 exercises with EMG data, muscle activation %)
 - [x] Muscle groups (19 muscles with MEV/MAV/MRV thresholds + recovery data)
 - [x] Equipment database (89 items)
-- [x] REST API endpoints (muscles, exercises, equipment, volume)
-- [x] Rate limiting middleware (tier-based)
-- [x] OpenAPI 3.1 documentation at /docs
+- [x] REST API endpoints (muscles, exercises, equipment, volume, keys, waitlist)
+- [x] Rate limiting middleware (tier-based with Redis, IP-based auth protection)
+- [x] OpenAPI 3.1 documentation at /docs (v1.1.0 — all endpoints documented)
 - [x] Valibot validation on all endpoints
 - [x] **Volume Calculation Engine** (core differentiator)
 - [x] **API Key System** (create, validate, revoke, tier-based rate limits)
 - [x] **Biomechanics Schema** (difficulty, movementPattern, forceProfile, stretchPosition, etc.)
-- [x] Testing infrastructure (Vitest)
+- [x] Testing infrastructure (Vitest — volume engine covered)
+- [x] **Landing page** with SEO, JSON-LD, pricing tiers, waitlist
+- [x] **Interactive docs** (Scalar embedded at /docs)
+- [x] **Waitlist endpoint** (IP rate-limited, anti-enumeration)
+- [x] **API subdomain** (api.logmaxing.tech via Vercel rewrites)
+- [x] **Security hardening** (brute-force protection, input validation, LIKE injection prevention, Content-Type enforcement, pagination clamping)
+- [x] **Security headers** (HSTS, CSP, X-Frame-Options, Permissions-Policy)
+
+---
+
+## What's Done vs What's Needed
+
+### Done
+
+| Feature                                         | Status   |
+| ----------------------------------------------- | -------- |
+| Exercise CRUD (read) + filtering (9 params)     | Complete |
+| Muscle CRUD (full, enterprise-gated writes)     | Complete |
+| Equipment listing                               | Complete |
+| Volume calculator (EMG-weighted)                | Complete |
+| API key management (create/list/revoke/delete)  | Complete |
+| Waitlist                                        | Complete |
+| OpenAPI docs (all endpoints + error responses)  | Complete |
+| Landing page + SEO                              | Complete |
+| Scalar interactive docs                         | Complete |
+| Rate limiting (6 tiers including auth + public) | Complete |
+| Security headers + input validation             | Complete |
+| API subdomain routing                           | Complete |
+
+### Not Built Yet (schema exists, no routes)
+
+| Feature                    | Schema Tables            | Notes                                |
+| -------------------------- | ------------------------ | ------------------------------------ |
+| Programs                   | program, block, blockDay | Full workout program builder         |
+| Workouts                   | workout, workoutExercise | Exercise assignments within programs |
+| Workout logging            | workoutLog               | Performance tracking                 |
+| User check-ins             | userCheckin              | Body metrics tracking                |
+| User profiles              | userProfile              | Fitness level, demographics          |
+| User auth (login/register) | —                        | auth.remote.ts is empty              |
 
 ---
 
 ## Next Steps (Priority Order)
 
-### Tier 1: Quick Wins (Make API Usable) - COMPLETE ✅
+### Tier 2: Differentiate
 
-| #   | Task                                | Status                      |
-| --- | ----------------------------------- | --------------------------- |
-| 1   | Push schema + seed data to DB       | ✅ Done                     |
-| 2   | Add filter params to `/exercises`   | ✅ Done                     |
-| 3   | Enrich exercises with biomechanics  | ✅ Done (all 176 exercises) |
-| 4   | Update OpenAPI docs with new fields | ⏳ Pending                  |
+| #   | Task                                    | Why                                             | Size |
+| --- | --------------------------------------- | ----------------------------------------------- | ---- |
+| 1   | Exercise alternatives mapping           | High value — "what can I swap bench press for?" | M    |
+| 2   | Periodization templates endpoint        | Differentiator for program builders             | M    |
+| 3   | Tests for API key validation + security | Only volume has tests currently                 | S    |
 
-**Available filter params:**
+### Tier 3: Revenue Pipeline
 
-- `difficulty` (beginner/intermediate/advanced)
-- `movementPattern` (horizontal_push, hip_hinge, squat, etc.)
-- `forceProfile` (ascending/descending/bell/constant)
-- `stretchPosition` (lengthened/mid/shortened)
-- `unilateral` (true/false)
-- `gripType` (overhand/underhand/neutral/mixed/none)
+| #   | Task                           | Why                                                     | Size |
+| --- | ------------------------------ | ------------------------------------------------------- | ---- |
+| 1   | Pricing page                   | Conversion — pricing is on landing page but no checkout | M    |
+| 2   | Stripe integration             | Actual revenue                                          | L    |
+| 3   | API key dashboard (web UI)     | Self-service key management                             | M    |
+| 4   | User auth (registration/login) | Required for dashboard + Stripe                         | L    |
 
-### Tier 2: Nice to Have (Differentiate)
+### Tier 4: Platform Growth
 
-| #   | Task                             | Skill                   | Why                | Size |
-| --- | -------------------------------- | ----------------------- | ------------------ | ---- |
-| 1   | Add alternatives mapping         | `/schema`, `/seed-data` | High value feature | M    |
-| 2   | Periodization templates endpoint | `/api-route`            | Differentiator     | M    |
-| 3   | Add tests for API key validation | manual                  | Reliability        | S    |
-
-### Tier 3: Polish (Revenue Ready)
-
-| #   | Task                      | Skill           | Why             | Size |
-| --- | ------------------------- | --------------- | --------------- | ---- |
-| 1   | Interactive docs (Scalar) | manual          | Developer trust | M    |
-| 2   | Landing page              | `/landing-page` | Conversion      | M    |
-| 3   | Pricing page              | `/component`    | Conversion      | S    |
-| 4   | Stripe integration        | `/auth`, manual | Revenue         | L    |
-| 5   | API key dashboard         | `/component`    | Self-service    | M    |
+| #   | Task                          | Why                               | Size |
+| --- | ----------------------------- | --------------------------------- | ---- |
+| 1   | Program builder API (CRUD)    | Unlocks workout tracking use case | L    |
+| 2   | Workout logging API           | Core mobile app feature           | L    |
+| 3   | Progress tracking / check-ins | Retention feature                 | M    |
 
 ---
 
@@ -84,13 +111,14 @@ Phase 1 (API Foundation) is **complete**. Now focused on making the API worth pa
 
 SvelteKit handles everything in one project:
 
-| Route        | Purpose            |
-| ------------ | ------------------ |
-| `/`          | Landing page       |
-| `/docs`      | API documentation  |
-| `/pricing`   | Stripe checkout    |
-| `/dashboard` | API key management |
-| `/api/*`     | The actual API     |
+| Route                | Purpose                  | Status    |
+| -------------------- | ------------------------ | --------- |
+| `/`                  | Landing page             | Live      |
+| `/docs`              | Scalar API documentation | Live      |
+| `/api/*`             | REST API                 | Live      |
+| `api.logmaxing.tech` | API subdomain            | Live      |
+| `/pricing`           | Stripe checkout          | Not built |
+| `/dashboard`         | API key management UI    | Not built |
 
 ---
 
@@ -98,7 +126,7 @@ SvelteKit handles everything in one project:
 
 **Endpoint**: `POST /api/volume`
 
-**Input**: Exercise-based or direct muscle input
+**Input**: Exercise-based or direct muscle input (or both combined)
 
 ```json
 {
@@ -129,12 +157,18 @@ SvelteKit handles everything in one project:
 - `POST /api/keys/:id/revoke` - Soft delete
 
 **Tiers & Rate Limits**:
-| Tier | Requests/Day |
-| ---------- | ------------ |
-| free | 100 |
-| developer | 170 |
-| pro | 850 |
-| enterprise | 3400 |
+| Tier | Requests/Day | Max Keys |
+| ---------- | ------------ | -------- |
+| free | 100 | 5 |
+| developer | 170 | 10 |
+| pro | 850 | 25 |
+| enterprise | 3400 | 100 |
+
+**Additional Rate Limits**:
+| Type | Limit | Purpose |
+|------|-------|---------|
+| auth_attempt | 20/15min per IP | Brute-force protection |
+| public | 10/day per IP | Waitlist endpoint |
 
 **Header**: `X-API-Key: lmx_...`
 
@@ -146,7 +180,7 @@ SvelteKit handles everything in one project:
 | -------------------- | ------ | --------------------- |
 | API free signups     | 10     | Ready (API keys work) |
 | API paid conversions | 3      | Blocked (no Stripe)   |
-| Waitlist signups     | 300    | Blocked (no landing)  |
+| Waitlist signups     | 300    | Ready (endpoint live) |
 
 ---
 
@@ -162,10 +196,13 @@ SvelteKit handles everything in one project:
 
 ## Key Files
 
-| File                                  | Purpose                                       |
-| ------------------------------------- | --------------------------------------------- |
-| `src/lib/server/api/exercises.ts`     | Exercise CRUD + filtering logic               |
-| `src/routes/api/exercises/+server.ts` | Exercise REST endpoint                        |
-| `src/lib/server/api/apiKeys.ts`       | API key generation/validation                 |
-| `src/hooks.server.ts`                 | Auth middleware                               |
-| `seed-data.ts`                        | All seed data (exercises, muscles, equipment) |
+| File                                  | Purpose                                              |
+| ------------------------------------- | ---------------------------------------------------- |
+| `src/lib/server/api/openapi.ts`       | OpenAPI 3.1 specification (v1.1.0)                   |
+| `src/lib/server/api/exercises.ts`     | Exercise CRUD + filtering logic                      |
+| `src/routes/api/exercises/+server.ts` | Exercise REST endpoint                               |
+| `src/lib/server/api/apiKeys.ts`       | API key generation/validation                        |
+| `src/lib/server/api/validation.ts`    | Shared validation (parseId, escapeLike, requireJson) |
+| `src/lib/server/ratelimit.ts`         | Rate limiting (6 tiers, Redis + memory fallback)     |
+| `src/hooks.server.ts`                 | Auth middleware + security headers                   |
+| `seed-data.ts`                        | All seed data (exercises, muscles, equipment)        |
