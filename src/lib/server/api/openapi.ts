@@ -8,7 +8,11 @@ The first public API for exercise science data. Access EMG-backed muscle activat
 volume landmarks (MEV/MAV/MRV), and a comprehensive exercise database.
 
 ## Authentication
-Currently in beta - no authentication required. API keys coming soon.
+All endpoints require an API key passed via the \`X-API-Key\` header.
+
+\`\`\`bash
+curl -H "X-API-Key: lmx_your_key_here" https://logmaxing.tech/api/muscles
+\`\`\`
 
 ## Rate Limits
 - **Free tier**: 100 requests/day
@@ -37,15 +41,21 @@ Currently in beta - no authentication required. API keys coming soon.
 	tags: [
 		{
 			name: 'Muscles',
-			description: 'Muscle groups with volume landmarks (MEV/MAV/MRV)'
+			description: 'Muscle groups with volume landmarks (MEV/MAV/MRV) and recovery data'
 		},
 		{
 			name: 'Exercises',
-			description: 'Exercise database with EMG muscle activation data'
+			description:
+				'Exercise database with EMG muscle activation data, biomechanics classification, and form guidance'
 		},
 		{
 			name: 'Equipment',
 			description: 'Gym equipment and accessories'
+		},
+		{
+			name: 'Volume',
+			description:
+				'Training volume calculator - compute effective sets per muscle and check if you are under, optimal, or over volume thresholds'
 		}
 	],
 	paths: {
@@ -74,7 +84,12 @@ Currently in beta - no authentication required. API keys coming soon.
 										mev: 6,
 										mavMin: 10,
 										mavMax: 16,
-										mrv: 22
+										mrv: 22,
+										recoveryDays: 2,
+										frequencyMin: 2,
+										frequencyMax: 3,
+										trainingTips:
+											'Responds well to stretch-focused movements like flyes. Full ROM important.'
 									}
 								]
 							}
@@ -237,6 +252,69 @@ Currently in beta - no authentication required. API keys coming soon.
 						description: 'Filter by equipment ID'
 					},
 					{
+						name: 'difficulty',
+						in: 'query',
+						schema: {
+							type: 'string',
+							enum: ['beginner', 'intermediate', 'advanced']
+						},
+						description: 'Filter by exercise difficulty level'
+					},
+					{
+						name: 'movementPattern',
+						in: 'query',
+						schema: {
+							type: 'string',
+							enum: [
+								'horizontal_push',
+								'vertical_push',
+								'horizontal_pull',
+								'vertical_pull',
+								'hip_hinge',
+								'squat',
+								'lunge',
+								'isolation',
+								'carry',
+								'rotation'
+							]
+						},
+						description: 'Filter by movement pattern classification'
+					},
+					{
+						name: 'forceProfile',
+						in: 'query',
+						schema: {
+							type: 'string',
+							enum: ['ascending', 'descending', 'bell', 'constant']
+						},
+						description: 'Filter by force curve - where in the ROM is the exercise hardest'
+					},
+					{
+						name: 'stretchPosition',
+						in: 'query',
+						schema: {
+							type: 'string',
+							enum: ['lengthened', 'mid', 'shortened']
+						},
+						description:
+							'Filter by where the muscle is loaded - critical for hypertrophy (lengthened = more growth stimulus)'
+					},
+					{
+						name: 'unilateral',
+						in: 'query',
+						schema: { type: 'boolean' },
+						description: 'Filter for single-limb exercises (true) or bilateral (false)'
+					},
+					{
+						name: 'gripType',
+						in: 'query',
+						schema: {
+							type: 'string',
+							enum: ['overhand', 'underhand', 'neutral', 'mixed', 'none']
+						},
+						description: 'Filter by grip orientation'
+					},
+					{
 						name: 'limit',
 						in: 'query',
 						schema: { type: 'integer', default: 50, maximum: 100 },
@@ -262,12 +340,20 @@ Currently in beta - no authentication required. API keys coming soon.
 									{
 										id: 1,
 										name: 'Barbell Bench Press',
+										difficulty: 'intermediate',
+										movementPattern: 'horizontal_push',
+										forceProfile: 'ascending',
+										stretchPosition: 'lengthened',
 										primaryMuscle: 'Chest',
 										muscleGroup: 'Push'
 									},
 									{
 										id: 2,
 										name: 'Incline Dumbbell Press',
+										difficulty: 'intermediate',
+										movementPattern: 'horizontal_push',
+										forceProfile: 'ascending',
+										stretchPosition: 'lengthened',
 										primaryMuscle: 'Chest',
 										muscleGroup: 'Push'
 									}
@@ -303,23 +389,40 @@ Currently in beta - no authentication required. API keys coming soon.
 								example: {
 									id: 1,
 									name: 'Barbell Bench Press',
+									difficulty: 'intermediate',
+									movementPattern: 'horizontal_push',
+									plane: 'sagittal',
+									jointActions: ['shoulder_flexion', 'elbow_extension'],
+									forceProfile: 'ascending',
+									stretchPosition: 'lengthened',
+									stabilityDemand: 'high',
+									unilateral: false,
+									gripType: 'overhand',
+									instructions: [
+										'Lie on flat bench with eyes under bar',
+										'Grip bar slightly wider than shoulder width',
+										'Unrack and lower to mid-chest',
+										'Press up until arms are extended'
+									],
+									tips: [
+										'Keep shoulder blades retracted throughout',
+										'Maintain arch in lower back',
+										'Control the descent for 2-3 seconds'
+									],
 									muscles: [
 										{
-											exerciseId: 1,
 											muscleId: 1,
 											activationType: 'primary',
 											weighting: 0.95,
 											muscle: { id: 1, name: 'Chest', muscleGroup: 'Push' }
 										},
 										{
-											exerciseId: 1,
 											muscleId: 4,
 											activationType: 'secondary',
 											weighting: 0.67,
 											muscle: { id: 4, name: 'Triceps', muscleGroup: 'Push' }
 										},
 										{
-											exerciseId: 1,
 											muscleId: 2,
 											activationType: 'secondary',
 											weighting: 0.79,
@@ -328,12 +431,10 @@ Currently in beta - no authentication required. API keys coming soon.
 									],
 									equipment: [
 										{
-											exerciseId: 1,
 											equipmentId: 1,
 											equipment: { id: 1, name: 'Barbell' }
 										},
 										{
-											exerciseId: 1,
 											equipmentId: 2,
 											equipment: { id: 2, name: 'Flat Bench' }
 										}
@@ -370,6 +471,108 @@ Currently in beta - no authentication required. API keys coming soon.
 								]
 							}
 						}
+					}
+				}
+			}
+		},
+		'/volume': {
+			get: {
+				tags: ['Volume'],
+				summary: 'Get volume thresholds',
+				description:
+					'Returns all muscle volume thresholds (MEV/MAV/MRV) for reference. Use POST to calculate effective volume.',
+				operationId: 'getVolumeThresholds',
+				responses: {
+					'200': {
+						description: 'Volume thresholds for all muscles',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/VolumeThresholdsResponse' }
+							}
+						}
+					}
+				}
+			},
+			post: {
+				tags: ['Volume'],
+				summary: 'Calculate training volume',
+				description: `
+**The core differentiator of this API.** Calculate effective training volume per muscle and see if you're under, optimal, or over volume thresholds.
+
+Two input modes:
+- **Exercise-based**: Pass exercise IDs + sets, uses EMG-weighted activations
+- **Direct**: Pass muscle IDs + sets directly
+
+The response tells you exactly which muscles are undertrained, optimal, or overtrained based on Renaissance Periodization science.
+				`.trim(),
+				operationId: 'calculateVolume',
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/VolumeInput' },
+							examples: {
+								exerciseBased: {
+									summary: 'Exercise-based input',
+									description:
+										'Calculate volume from exercises - automatically applies EMG weightings',
+									value: {
+										exercises: [
+											{ exerciseId: 1, sets: 4 },
+											{ exerciseId: 12, sets: 3 },
+											{ exerciseId: 25, sets: 3 }
+										]
+									}
+								},
+								directMuscle: {
+									summary: 'Direct muscle input',
+									description: 'Specify sets per muscle directly',
+									value: {
+										directVolume: [
+											{ muscleId: 1, sets: 12 },
+											{ muscleId: 3, sets: 8 }
+										]
+									}
+								}
+							}
+						}
+					}
+				},
+				responses: {
+					'200': {
+						description: 'Volume analysis with zone classification',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/VolumeResponse' },
+								example: {
+									muscles: [
+										{
+											muscleId: 1,
+											muscleName: 'Chest',
+											effectiveSets: 10,
+											zone: 'optimal',
+											thresholds: { mev: 10, mavMin: 12, mavMax: 18, mrv: 22 }
+										},
+										{
+											muscleId: 4,
+											muscleName: 'Triceps',
+											effectiveSets: 6,
+											zone: 'under',
+											thresholds: { mev: 8, mavMin: 10, mavMax: 14, mrv: 18 }
+										}
+									],
+									summary: {
+										totalMuscles: 2,
+										under: ['Triceps'],
+										optimal: ['Chest'],
+										over: []
+									}
+								}
+							}
+						}
+					},
+					'400': {
+						description: 'Invalid input - must provide exercises or directVolume'
 					}
 				}
 			}
@@ -412,6 +615,26 @@ Currently in beta - no authentication required. API keys coming soon.
 						type: 'integer',
 						nullable: true,
 						description: 'Maximum Recoverable Volume - sets/week ceiling before overtraining'
+					},
+					recoveryDays: {
+						type: 'integer',
+						nullable: true,
+						description: 'Typical recovery time in days (1-3)'
+					},
+					frequencyMin: {
+						type: 'integer',
+						nullable: true,
+						description: 'Minimum recommended training frequency (sessions/week)'
+					},
+					frequencyMax: {
+						type: 'integer',
+						nullable: true,
+						description: 'Maximum recommended training frequency (sessions/week)'
+					},
+					trainingTips: {
+						type: 'string',
+						nullable: true,
+						description: 'Muscle-specific training guidance and form cues'
 					}
 				},
 				required: ['id', 'name']
@@ -439,10 +662,45 @@ Currently in beta - no authentication required. API keys coming soon.
 			},
 			ExerciseListItem: {
 				type: 'object',
-				description: 'Exercise summary for list views',
+				description: 'Exercise summary for list views with biomechanics classification',
 				properties: {
 					id: { type: 'integer' },
 					name: { type: 'string' },
+					difficulty: {
+						type: 'string',
+						enum: ['beginner', 'intermediate', 'advanced'],
+						nullable: true,
+						description: 'Exercise difficulty level'
+					},
+					movementPattern: {
+						type: 'string',
+						enum: [
+							'horizontal_push',
+							'vertical_push',
+							'horizontal_pull',
+							'vertical_pull',
+							'hip_hinge',
+							'squat',
+							'lunge',
+							'isolation',
+							'carry',
+							'rotation'
+						],
+						nullable: true,
+						description: 'Movement pattern classification'
+					},
+					forceProfile: {
+						type: 'string',
+						enum: ['ascending', 'descending', 'bell', 'constant'],
+						nullable: true,
+						description: 'Where in ROM the exercise is hardest'
+					},
+					stretchPosition: {
+						type: 'string',
+						enum: ['lengthened', 'mid', 'shortened'],
+						nullable: true,
+						description: 'Where muscle is loaded - critical for hypertrophy'
+					},
 					primaryMuscle: { type: 'string', nullable: true },
 					muscleGroup: {
 						type: 'string',
@@ -456,7 +714,6 @@ Currently in beta - no authentication required. API keys coming soon.
 				type: 'object',
 				description: 'How much an exercise activates a specific muscle',
 				properties: {
-					exerciseId: { type: 'integer' },
 					muscleId: { type: 'integer' },
 					activationType: {
 						type: 'string',
@@ -468,25 +725,110 @@ Currently in beta - no authentication required. API keys coming soon.
 						format: 'float',
 						minimum: 0,
 						maximum: 1,
-						description: 'EMG-based activation percentage (0.0-1.0)'
+						description:
+							'EMG-based activation percentage (0.0-1.0). 1.0 = full activation, used in volume calculations.'
 					},
-					muscle: { $ref: '#/components/schemas/Muscle' }
+					muscle: {
+						type: 'object',
+						properties: {
+							id: { type: 'integer' },
+							name: { type: 'string' },
+							muscleGroup: { type: 'string' }
+						},
+						description: 'Basic muscle info'
+					}
 				}
 			},
 			ExerciseEquipment: {
 				type: 'object',
 				properties: {
-					exerciseId: { type: 'integer' },
 					equipmentId: { type: 'integer' },
 					equipment: { $ref: '#/components/schemas/Equipment' }
 				}
 			},
 			ExerciseWithDetails: {
 				type: 'object',
-				description: 'Full exercise details with muscle activations and equipment',
+				description:
+					'Full exercise details with biomechanics, muscle activations, equipment, and form guidance',
 				properties: {
 					id: { type: 'integer' },
 					name: { type: 'string' },
+					difficulty: {
+						type: 'string',
+						enum: ['beginner', 'intermediate', 'advanced'],
+						nullable: true
+					},
+					movementPattern: {
+						type: 'string',
+						enum: [
+							'horizontal_push',
+							'vertical_push',
+							'horizontal_pull',
+							'vertical_pull',
+							'hip_hinge',
+							'squat',
+							'lunge',
+							'isolation',
+							'carry',
+							'rotation'
+						],
+						nullable: true,
+						description: 'Movement pattern classification for programming balance'
+					},
+					plane: {
+						type: 'string',
+						enum: ['sagittal', 'frontal', 'transverse', 'multi'],
+						nullable: true,
+						description: 'Primary plane of motion'
+					},
+					jointActions: {
+						type: 'array',
+						items: { type: 'string' },
+						nullable: true,
+						description: 'Joint actions involved (e.g., shoulder_flexion, elbow_extension)'
+					},
+					forceProfile: {
+						type: 'string',
+						enum: ['ascending', 'descending', 'bell', 'constant'],
+						nullable: true,
+						description:
+							'Where in ROM the exercise is hardest - ascending = top, descending = bottom, bell = middle'
+					},
+					stretchPosition: {
+						type: 'string',
+						enum: ['lengthened', 'mid', 'shortened'],
+						nullable: true,
+						description: 'Where muscle is loaded - lengthened position = more hypertrophy stimulus'
+					},
+					stabilityDemand: {
+						type: 'string',
+						enum: ['high', 'medium', 'low'],
+						nullable: true,
+						description: 'How much stabilization is required'
+					},
+					unilateral: {
+						type: 'boolean',
+						nullable: true,
+						description: 'Whether exercise is single-limb'
+					},
+					gripType: {
+						type: 'string',
+						enum: ['overhand', 'underhand', 'neutral', 'mixed', 'none'],
+						nullable: true,
+						description: 'Grip orientation'
+					},
+					instructions: {
+						type: 'array',
+						items: { type: 'string' },
+						nullable: true,
+						description: 'Step-by-step execution guide'
+					},
+					tips: {
+						type: 'array',
+						items: { type: 'string' },
+						nullable: true,
+						description: 'Form cues and coaching points'
+					},
 					muscles: {
 						type: 'array',
 						items: { $ref: '#/components/schemas/MuscleActivation' },
@@ -499,7 +841,132 @@ Currently in beta - no authentication required. API keys coming soon.
 					}
 				},
 				required: ['id', 'name', 'muscles', 'equipment']
+			},
+			VolumeInput: {
+				type: 'object',
+				description: 'Input for volume calculation - use either exercises or directVolume',
+				properties: {
+					exercises: {
+						type: 'array',
+						items: {
+							type: 'object',
+							properties: {
+								exerciseId: { type: 'integer', description: 'Exercise ID' },
+								sets: { type: 'integer', description: 'Number of sets performed' }
+							},
+							required: ['exerciseId', 'sets']
+						},
+						description: 'List of exercises with sets - EMG weightings applied automatically'
+					},
+					directVolume: {
+						type: 'array',
+						items: {
+							type: 'object',
+							properties: {
+								muscleId: { type: 'integer', description: 'Muscle ID' },
+								sets: { type: 'integer', description: 'Direct sets for this muscle' }
+							},
+							required: ['muscleId', 'sets']
+						},
+						description: 'Direct muscle volume input - bypasses exercise lookup'
+					}
+				}
+			},
+			VolumeThresholdsResponse: {
+				type: 'object',
+				description: 'Reference thresholds for all muscles',
+				properties: {
+					muscles: {
+						type: 'array',
+						items: {
+							type: 'object',
+							properties: {
+								muscleId: { type: 'integer' },
+								muscleName: { type: 'string' },
+								thresholds: {
+									type: 'object',
+									properties: {
+										mev: { type: 'integer', description: 'Minimum Effective Volume' },
+										mavMin: {
+											type: 'integer',
+											description: 'Maximum Adaptive Volume (min)'
+										},
+										mavMax: {
+											type: 'integer',
+											description: 'Maximum Adaptive Volume (max)'
+										},
+										mrv: { type: 'integer', description: 'Maximum Recoverable Volume' }
+									}
+								}
+							}
+						}
+					}
+				}
+			},
+			VolumeResponse: {
+				type: 'object',
+				description: 'Volume analysis result with zone classifications',
+				properties: {
+					muscles: {
+						type: 'array',
+						items: {
+							type: 'object',
+							properties: {
+								muscleId: { type: 'integer' },
+								muscleName: { type: 'string' },
+								effectiveSets: {
+									type: 'number',
+									description: 'Calculated effective sets (may be weighted)'
+								},
+								zone: {
+									type: 'string',
+									enum: ['under', 'optimal', 'over'],
+									description: 'Volume zone - under MEV, between MEV-MRV (optimal), or over MRV'
+								},
+								thresholds: {
+									type: 'object',
+									properties: {
+										mev: { type: 'integer' },
+										mavMin: { type: 'integer' },
+										mavMax: { type: 'integer' },
+										mrv: { type: 'integer' }
+									}
+								}
+							}
+						}
+					},
+					summary: {
+						type: 'object',
+						properties: {
+							totalMuscles: { type: 'integer' },
+							under: {
+								type: 'array',
+								items: { type: 'string' },
+								description: 'Muscle names below MEV'
+							},
+							optimal: {
+								type: 'array',
+								items: { type: 'string' },
+								description: 'Muscle names in optimal range'
+							},
+							over: {
+								type: 'array',
+								items: { type: 'string' },
+								description: 'Muscle names above MRV'
+							}
+						}
+					}
+				}
+			}
+		},
+		securitySchemes: {
+			ApiKeyAuth: {
+				type: 'apiKey',
+				in: 'header',
+				name: 'X-API-Key',
+				description: 'API key for authentication. Format: lmx_...'
 			}
 		}
-	}
+	},
+	security: [{ ApiKeyAuth: [] }]
 } as const;
