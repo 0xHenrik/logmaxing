@@ -114,12 +114,20 @@ export async function validateApiKey(rawKey: string): Promise<ValidatedApiKey | 
 	if (result.expiresAt && result.expiresAt < new Date()) return null;
 
 	// Update usage metadata (fire and forget - don't block response)
-	updateKeyUsage(result.id).catch(() => {});
+	updateKeyUsage(result.id).catch((err) => {
+		console.error(`Failed to update usage for key ${result.id}:`, err);
+	});
+
+	// Validate tier from database to prevent invalid values
+	const validTiers: ApiKeyTier[] = ['free', 'developer', 'pro', 'enterprise'];
+	const tier = validTiers.includes(result.tier as ApiKeyTier)
+		? (result.tier as ApiKeyTier)
+		: 'free';
 
 	return {
 		id: result.id,
 		userId: result.userId,
-		tier: result.tier as ApiKeyTier,
+		tier,
 		name: result.name
 	};
 }

@@ -62,6 +62,7 @@ import * as v from 'valibot';
 import { eq } from 'drizzle-orm';
 
 import { db } from '$lib/server/db';
+import { requireJson } from '$lib/server/api/validation';
 import { exercise, exerciseMuscle } from '$lib/server/db/schema';
 import { calculateVolume, getMusclesWithThresholds } from '$lib/server/api/volume';
 
@@ -92,8 +93,8 @@ const directVolumeInputSchema = v.object({
  * At least one of `exercises` or `directVolume` must be provided.
  */
 const volumeRequestSchema = v.object({
-	exercises: v.optional(v.array(exerciseInputSchema)),
-	directVolume: v.optional(v.array(directVolumeInputSchema))
+	exercises: v.optional(v.pipe(v.array(exerciseInputSchema), v.maxLength(50))),
+	directVolume: v.optional(v.pipe(v.array(directVolumeInputSchema), v.maxLength(25)))
 });
 
 /**
@@ -188,6 +189,9 @@ export const GET: RequestHandler = async () => {
 };
 
 export const POST: RequestHandler = async ({ request }) => {
+	const ctError = requireJson(request);
+	if (ctError) return ctError;
+
 	try {
 		const json = await request.json();
 		const validatedRequest = validateRequest(json);

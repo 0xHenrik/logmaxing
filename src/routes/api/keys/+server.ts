@@ -2,11 +2,11 @@ import type { RequestHandler } from '@sveltejs/kit';
 
 import * as v from 'valibot';
 
+import { requireJson } from '$lib/server/api/validation';
 import { createApiKey, getApiKeysByUser } from '$lib/server/api/apiKeys';
 
 const createKeySchema = v.object({
 	name: v.pipe(v.string(), v.minLength(1), v.maxLength(100)),
-	tier: v.optional(v.picklist(['free', 'developer', 'pro', 'enterprise'])),
 	expiresAt: v.optional(v.pipe(v.string(), v.isoTimestamp()))
 });
 
@@ -26,6 +26,29 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		return Response.json({ error: 'Authentication required' }, { status: 401 });
 	}
 
+	const ctError = requireJson(request);
+	if (ctError) return ctError;
+
+	// Enforce per-user key limits by tier
+	const KEY_LIMITS: Record<string, number> = {
+		free: 5,
+		developer: 10,
+		pro: 25,
+		enterprise: 100
+	};
+	const maxKeys = KEY_LIMITS[locals.apiKey.tier] ?? 5;
+	const existingKeys = await getApiKeysByUser(locals.apiKey.userId);
+	const activeKeyCount = existingKeys.filter((k) => k.isActive && !k.revokedAt).length;
+	if (activeKeyCount >= maxKeys) {
+		return Response.json(
+			{
+				error: 'Key limit reached',
+				message: `Maximum of ${maxKeys} active keys for your ${locals.apiKey.tier} tier.`
+			},
+			{ status: 403 }
+		);
+	}
+
 	try {
 		const json = await request.json();
 		const input = v.parse(createKeySchema, json);
@@ -33,7 +56,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 		const result = await createApiKey({
 			userId: locals.apiKey.userId,
 			name: input.name,
-			tier: input.tier,
+			tier: 'free',
 			expiresAt: input.expiresAt ? new Date(input.expiresAt) : undefined
 		});
 

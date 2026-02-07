@@ -1,6 +1,7 @@
 import { eq, and, ilike, inArray, isNotNull } from 'drizzle-orm';
 
 import { db } from '../db';
+import { escapeLikePattern } from './validation';
 import {
 	type Muscle,
 	type Exercise,
@@ -79,9 +80,10 @@ export async function getExercises(filters: ExerciseFilters = {}): Promise<Exerc
 
 	const conditions = [];
 
-	// Filter by search term
+	// Filter by search term (escape wildcards to prevent ILIKE injection)
 	if (search) {
-		conditions.push(ilike(exercise.name, `%${search}%`));
+		const escaped = escapeLikePattern(search);
+		conditions.push(ilike(exercise.name, `%${escaped}%`));
 	}
 
 	// Filter by muscle

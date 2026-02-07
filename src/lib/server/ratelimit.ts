@@ -5,6 +5,8 @@ import { Ratelimit } from '@upstash/ratelimit';
 
 // Rate limit tiers (requests per window)
 export const RATE_LIMITS = {
+	public: { requests: 10, window: '1 d' }, // 10/day for public endpoints (waitlist)
+	auth_attempt: { requests: 20, window: '15 m' }, // 20 auth attempts per 15 min per IP
 	free: { requests: 100, window: '1 d' }, // 100/day for free tier
 	developer: { requests: 170, window: '1 d' }, // ~5000/month
 	pro: { requests: 850, window: '1 d' }, // ~25000/month
@@ -18,8 +20,18 @@ type RateLimitResult = {
 	reset: number;
 };
 
-// In-memory fallback for development (won't persist across restarts)
+// In-memory fallback for development (won't persist across serverless restarts)
 const memoryStore = new Map<string, { count: number; resetAt: number }>();
+
+// Periodic cleanup of expired in-memory entries to prevent memory leaks
+if (!building) {
+	setInterval(() => {
+		const now = Date.now();
+		for (const [key, entry] of memoryStore) {
+			if (now > entry.resetAt) memoryStore.delete(key);
+		}
+	}, 60_000);
+}
 
 function getMemoryRateLimit(identifier: string, limit: number, windowMs: number): RateLimitResult {
 	const now = Date.now();
@@ -38,46 +50,62 @@ function getMemoryRateLimit(identifier: string, limit: number, windowMs: number)
 	return { success: true, limit, remaining: limit - entry.count, reset: entry.resetAt };
 }
 
-// Create Upstash ratelimiter if credentials exist
-let upstashRatelimit: Ratelimit | null = null;
+// Create shared Redis client and per-tier limiters at module level (reused across requests)
+let redisClient: Redis | null = null;
+const tierLimiters = new Map<RateLimitTier, Ratelimit>();
 
 if (!building && env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN) {
-	const redis = new Redis({
+	redisClient = new Redis({
 		url: env.UPSTASH_REDIS_REST_URL,
 		token: env.UPSTASH_REDIS_REST_TOKEN
 	});
 
-	upstashRatelimit = new Ratelimit({
-		redis,
-		limiter: Ratelimit.slidingWindow(RATE_LIMITS.free.requests, RATE_LIMITS.free.window),
-		analytics: true,
-		prefix: 'logmaxing:ratelimit'
-	});
+	for (const [tier, limits] of Object.entries(RATE_LIMITS)) {
+		tierLimiters.set(
+			tier as RateLimitTier,
+			new Ratelimit({
+				redis: redisClient,
+				limiter: Ratelimit.slidingWindow(limits.requests, limits.window),
+				analytics: true,
+				prefix: `logmaxing:ratelimit:${tier}`
+			})
+		);
+	}
+} else if (!building) {
+	console.warn('Rate limiting: Redis not configured, using in-memory fallback');
 }
 
 export type RateLimitTier = keyof typeof RATE_LIMITS;
+
+function parseWindowMs(window: string): number {
+	const match = window.match(/^(\d+)\s*(d|h|m|s)$/);
+	if (!match) return 24 * 60 * 60 * 1000; // default 1 day
+	const value = Number(match[1]);
+	switch (match[2]) {
+		case 'd':
+			return value * 24 * 60 * 60 * 1000;
+		case 'h':
+			return value * 60 * 60 * 1000;
+		case 'm':
+			return value * 60 * 1000;
+		case 's':
+			return value * 1000;
+		default:
+			return 24 * 60 * 60 * 1000;
+	}
+}
 
 export async function checkRateLimit(
 	identifier: string,
 	tier: RateLimitTier = 'free'
 ): Promise<RateLimitResult> {
 	const limits = RATE_LIMITS[tier];
-	const windowMs = 24 * 60 * 60 * 1000; // 1 day
+	const windowMs = parseWindowMs(limits.window);
 
 	// Use Upstash in production, memory in development
-	if (upstashRatelimit) {
-		// Create a tier-specific limiter for accurate limits
-		const tierLimiter = new Ratelimit({
-			redis: new Redis({
-				url: env.UPSTASH_REDIS_REST_URL!,
-				token: env.UPSTASH_REDIS_REST_TOKEN!
-			}),
-			limiter: Ratelimit.slidingWindow(limits.requests, limits.window),
-			analytics: true,
-			prefix: `logmaxing:ratelimit:${tier}`
-		});
-
-		const result = await tierLimiter.limit(identifier);
+	const limiter = tierLimiters.get(tier);
+	if (limiter) {
+		const result = await limiter.limit(identifier);
 		return {
 			success: result.success,
 			limit: result.limit,

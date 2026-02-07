@@ -1,12 +1,24 @@
 import type { RequestHandler } from '@sveltejs/kit';
 
+import { parseId } from '$lib/server/api/validation';
 import { getExercises } from '$lib/server/api/exercises';
 
 export const GET: RequestHandler = async ({ url }) => {
 	const search = url.searchParams.get('search') ?? undefined;
-	const muscleId = url.searchParams.get('muscleId');
+	const muscleIdParam = url.searchParams.get('muscleId');
 	const muscleGroup = url.searchParams.get('muscleGroup') ?? undefined;
-	const equipmentId = url.searchParams.get('equipmentId');
+	const equipmentIdParam = url.searchParams.get('equipmentId');
+
+	// Validate numeric query params
+	const muscleId = muscleIdParam ? parseId(muscleIdParam) : undefined;
+	if (muscleIdParam && muscleId === null) {
+		return Response.json({ error: 'muscleId must be a positive integer' }, { status: 400 });
+	}
+
+	const equipmentId = equipmentIdParam ? parseId(equipmentIdParam) : undefined;
+	if (equipmentIdParam && equipmentId === null) {
+		return Response.json({ error: 'equipmentId must be a positive integer' }, { status: 400 });
+	}
 
 	// Biomechanics filters
 	const difficulty = url.searchParams.get('difficulty') ?? undefined;
@@ -18,23 +30,27 @@ export const GET: RequestHandler = async ({ url }) => {
 		unilateralParam === 'true' ? true : unilateralParam === 'false' ? false : undefined;
 	const gripType = url.searchParams.get('gripType') ?? undefined;
 
-	// Pagination
-	const limit = url.searchParams.get('limit');
-	const offset = url.searchParams.get('offset');
+	// Pagination — clamp to safe bounds
+	const rawLimit = url.searchParams.get('limit');
+	const rawOffset = url.searchParams.get('offset');
+	const parsedLimit = rawLimit ? Number(rawLimit) : 50;
+	const parsedOffset = rawOffset ? Number(rawOffset) : 0;
 
 	const data = await getExercises({
 		search,
-		muscleId: muscleId ? Number(muscleId) : undefined,
+		muscleId: muscleId ?? undefined,
 		muscleGroup,
-		equipmentId: equipmentId ? Number(equipmentId) : undefined,
+		equipmentId: equipmentId ?? undefined,
 		difficulty,
 		movementPattern,
 		forceProfile,
 		stretchPosition,
 		unilateral,
 		gripType,
-		limit: limit ? Number(limit) : 50,
-		offset: offset ? Number(offset) : 0
+		limit: Number.isFinite(parsedLimit) ? Math.min(Math.max(Math.floor(parsedLimit), 1), 100) : 50,
+		offset: Number.isFinite(parsedOffset)
+			? Math.min(Math.max(Math.floor(parsedOffset), 0), Number.MAX_SAFE_INTEGER)
+			: 0
 	});
 
 	return Response.json(data);

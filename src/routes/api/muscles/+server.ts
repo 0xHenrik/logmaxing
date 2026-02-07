@@ -3,6 +3,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import * as v from 'valibot';
 import { createInsertSchema } from 'drizzle-valibot';
 
+import { requireJson } from '$lib/server/api/validation';
 import { type Muscle, muscle } from '$lib/server/db/schema';
 import { getMuscles, insertMuscle } from '$lib/server/api/muscles';
 
@@ -13,7 +14,14 @@ export const GET: RequestHandler = async () => {
 	return Response.json(data);
 };
 
-export const POST: RequestHandler = async ({ request }) => {
+export const POST: RequestHandler = async ({ request, locals }) => {
+	if (!locals.apiKey || locals.apiKey.tier !== 'enterprise') {
+		return Response.json({ error: 'Forbidden: admin access required' }, { status: 403 });
+	}
+
+	const ctError = requireJson(request);
+	if (ctError) return ctError;
+
 	try {
 		const json = await request.json();
 		const result = v.parse(insertMuscleSchema, json);
