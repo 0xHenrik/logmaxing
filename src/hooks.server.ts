@@ -51,12 +51,21 @@ const securityHeaders: Handle = async ({ event, resolve }) => {
 };
 
 const apiAuth: Handle = async ({ event, resolve }) => {
-	// Only process API routes (except openapi.json and waitlist which are public)
-	if (
-		!event.url.pathname.startsWith('/api/') ||
-		event.url.pathname.includes('openapi.json') ||
-		event.url.pathname.startsWith('/api/waitlist')
-	) {
+	const isApiSubdomain = event.url.host === 'api.logmaxing.tech';
+	const pathname = event.url.pathname;
+
+	// Determine if this request needs API auth:
+	// - Direct /api/* routes on the main domain
+	// - All routes on api.logmaxing.tech (reroute hook prepends /api/)
+	const isApiRoute = pathname.startsWith('/api/') || isApiSubdomain;
+
+	// Public endpoints that skip auth
+	const isPublic =
+		pathname.includes('openapi.json') ||
+		pathname.startsWith('/api/waitlist') ||
+		(isApiSubdomain && pathname === '/waitlist');
+
+	if (!isApiRoute || isPublic) {
 		return resolve(event);
 	}
 
