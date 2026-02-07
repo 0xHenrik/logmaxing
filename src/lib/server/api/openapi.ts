@@ -2,7 +2,7 @@ export const openApiSpec = {
 	openapi: '3.1.0',
 	info: {
 		title: 'Logmaxing Training Science API',
-		version: '1.1.0',
+		version: '1.2.0',
 		description: `
 The first public API for exercise science data. Access EMG-backed muscle activation data,
 volume landmarks (MEV/MAV/MRV), and a comprehensive exercise database.
@@ -75,6 +75,11 @@ Rate limit headers are returned on every response:
 		{
 			name: 'Waitlist',
 			description: 'Join the waitlist (no authentication required)'
+		},
+		{
+			name: 'Periodization',
+			description:
+				'Periodization templates — curated training splits, block structures, and volume recommendations based on exercise science'
 		}
 	],
 	paths: {
@@ -512,6 +517,233 @@ Rate limit headers are returned on every response:
 							'application/json': {
 								schema: { $ref: '#/components/schemas/Error' },
 								example: { error: 'Not found' }
+							}
+						}
+					},
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/exercises/{id}/alternatives': {
+			get: {
+				tags: ['Exercises'],
+				summary: 'Find alternative exercises',
+				description: `
+Returns exercises similar to the specified exercise, ranked by similarity score. Uses muscle activation overlap and biomechanics to find the best substitutions.
+
+**Scoring weights:**
+- Primary muscle match (40%) — same target muscle
+- Secondary muscle match (20%) — similar synergist activation
+- Movement pattern (20%) — same or related movement family
+- Force profile (10%) — same resistance curve
+- Stretch position (10%) — same loading position
+
+Use this to answer: "What can I swap Bench Press for?"
+				`.trim(),
+				operationId: 'getExerciseAlternatives',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Exercise ID to find alternatives for'
+					},
+					{
+						name: 'equipment',
+						in: 'query',
+						schema: { type: 'string' },
+						description:
+							'Comma-separated equipment IDs. Only show exercises using this equipment (e.g., "1,3,5")'
+					},
+					{
+						name: 'difficulty',
+						in: 'query',
+						schema: {
+							type: 'string',
+							enum: ['same', 'easier', 'harder', 'any'],
+							default: 'any'
+						},
+						description: 'Filter by difficulty relative to the source exercise'
+					},
+					{
+						name: 'exclude',
+						in: 'query',
+						schema: { type: 'string' },
+						description: 'Comma-separated exercise IDs to exclude from results'
+					},
+					{
+						name: 'minSimilarity',
+						in: 'query',
+						schema: { type: 'number', minimum: 0, maximum: 1, default: 0.5 },
+						description: 'Minimum similarity score threshold (0.0-1.0)'
+					},
+					{
+						name: 'limit',
+						in: 'query',
+						schema: { type: 'integer', minimum: 1, maximum: 50, default: 10 },
+						description: 'Maximum number of alternatives to return'
+					}
+				],
+				responses: {
+					'200': {
+						description: 'Alternative exercises ranked by similarity',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/AlternativesResult' },
+								example: {
+									sourceExercise: {
+										id: 1,
+										name: 'Barbell Bench Press',
+										primaryMuscle: 'Chest',
+										movementPattern: 'horizontal_push'
+									},
+									alternatives: [
+										{
+											exerciseId: 12,
+											name: 'Dumbbell Bench Press',
+											similarity: 0.92,
+											matchReasons: [
+												'Same primary muscle (Chest)',
+												'Same movement pattern',
+												'Lengthened stretch position'
+											],
+											difficulty: 'intermediate',
+											movementPattern: 'horizontal_push',
+											primaryMuscle: 'Chest',
+											equipment: [{ id: 2, name: 'Dumbbells' }]
+										}
+									],
+									totalCandidates: 175
+								}
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Exercise not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Exercise not found' }
+							}
+						}
+					},
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/periodization/templates': {
+			get: {
+				tags: ['Periodization'],
+				summary: 'List periodization templates',
+				description: `
+Curated training program templates with splits, volume recommendations, and block structures based on exercise science.
+
+**Available templates include:**
+- Full Body (3-day) for beginners
+- Upper/Lower (4-day) for intermediates
+- Push/Pull/Legs (6-day) for intermediates
+
+Each template includes weekly schedules, mesocycle blocks (accumulation, intensification, deload), progression schemes, and per-muscle volume recommendations aligned with MEV/MAV/MRV thresholds.
+				`.trim(),
+				operationId: 'listPeriodizationTemplates',
+				parameters: [
+					{
+						name: 'split',
+						in: 'query',
+						schema: {
+							type: 'string',
+							enum: ['push_pull_legs', 'upper_lower', 'full_body']
+						},
+						description: 'Filter by training split type'
+					},
+					{
+						name: 'days',
+						in: 'query',
+						schema: { type: 'integer', minimum: 1, maximum: 7 },
+						description: 'Filter by training days per week'
+					},
+					{
+						name: 'level',
+						in: 'query',
+						schema: {
+							type: 'string',
+							enum: ['beginner', 'intermediate', 'advanced']
+						},
+						description: 'Filter by target experience level'
+					},
+					{
+						name: 'tags',
+						in: 'query',
+						schema: { type: 'string' },
+						description:
+							'Comma-separated tags to filter by (e.g., "hypertrophy,ppl"). Matches any tag.'
+					}
+				],
+				responses: {
+					'200': {
+						description: 'List of periodization templates (summary view)',
+						content: {
+							'application/json': {
+								schema: {
+									type: 'array',
+									items: { $ref: '#/components/schemas/PeriodizationTemplateListItem' }
+								},
+								example: [
+									{
+										id: 'ppl_6day_hypertrophy',
+										name: 'Push/Pull/Legs (6 Days/Week) - Hypertrophy Focus',
+										description:
+											'Classic PPL split run twice per week. High frequency with MAV-range targets.',
+										split: 'push_pull_legs',
+										daysPerWeek: 6,
+										targetLevel: 'intermediate',
+										tags: ['intermediate', 'ppl', 'hypertrophy', '6_days']
+									}
+								]
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/periodization/templates/{id}': {
+			get: {
+				tags: ['Periodization'],
+				summary: 'Get a periodization template',
+				description:
+					'Returns full template details including weekly schedule, block structures, progression scheme, and per-muscle volume recommendations.',
+				operationId: 'getPeriodizationTemplate',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'string' },
+						description: 'Template ID (e.g., "ppl_6day_hypertrophy")'
+					}
+				],
+				responses: {
+					'200': {
+						description: 'Full periodization template',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/PeriodizationTemplate' }
+							}
+						}
+					},
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Template not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Template not found' }
 							}
 						}
 					},
@@ -1407,6 +1639,157 @@ Per-tier key limits:
 					warning: { type: 'string' }
 				},
 				required: ['key', 'rawKey', 'warning']
+			},
+			AlternativeExercise: {
+				type: 'object',
+				description: 'An exercise alternative with similarity score',
+				properties: {
+					exerciseId: { type: 'integer' },
+					name: { type: 'string' },
+					similarity: {
+						type: 'number',
+						format: 'float',
+						minimum: 0,
+						maximum: 1,
+						description: 'Similarity score (0.0-1.0)'
+					},
+					matchReasons: {
+						type: 'array',
+						items: { type: 'string' },
+						description: 'Human-readable reasons for the match'
+					},
+					difficulty: { type: 'string', nullable: true },
+					movementPattern: { type: 'string', nullable: true },
+					primaryMuscle: { type: 'string', nullable: true },
+					equipment: {
+						type: 'array',
+						items: { $ref: '#/components/schemas/Equipment' }
+					}
+				},
+				required: ['exerciseId', 'name', 'similarity', 'matchReasons']
+			},
+			AlternativesResult: {
+				type: 'object',
+				description: 'Exercise alternatives response with source context',
+				properties: {
+					sourceExercise: {
+						type: 'object',
+						properties: {
+							id: { type: 'integer' },
+							name: { type: 'string' },
+							primaryMuscle: { type: 'string', nullable: true },
+							movementPattern: { type: 'string', nullable: true }
+						}
+					},
+					alternatives: {
+						type: 'array',
+						items: { $ref: '#/components/schemas/AlternativeExercise' }
+					},
+					totalCandidates: {
+						type: 'integer',
+						description: 'Total exercises evaluated before filtering'
+					}
+				},
+				required: ['sourceExercise', 'alternatives', 'totalCandidates']
+			},
+			PeriodizationTemplateListItem: {
+				type: 'object',
+				description: 'Periodization template summary for list views',
+				properties: {
+					id: { type: 'string' },
+					name: { type: 'string' },
+					description: { type: 'string' },
+					split: {
+						type: 'string',
+						enum: ['push_pull_legs', 'upper_lower', 'full_body']
+					},
+					daysPerWeek: { type: 'integer' },
+					targetLevel: {
+						type: 'string',
+						enum: ['beginner', 'intermediate', 'advanced']
+					},
+					tags: { type: 'array', items: { type: 'string' } }
+				},
+				required: ['id', 'name', 'split', 'daysPerWeek', 'targetLevel']
+			},
+			PeriodizationTemplate: {
+				type: 'object',
+				description:
+					'Full periodization template with schedule, blocks, and volume recommendations',
+				properties: {
+					id: { type: 'string' },
+					name: { type: 'string' },
+					description: { type: 'string' },
+					split: { type: 'string' },
+					daysPerWeek: { type: 'integer' },
+					weeklySchedule: {
+						type: 'array',
+						items: {
+							type: 'object',
+							properties: {
+								name: { type: 'string' },
+								muscleGroups: { type: 'array', items: { type: 'string' } },
+								exerciseCount: {
+									type: 'object',
+									properties: { min: { type: 'integer' }, max: { type: 'integer' } }
+								},
+								totalSets: {
+									type: 'object',
+									properties: { min: { type: 'integer' }, max: { type: 'integer' } }
+								},
+								durationMinutes: {
+									type: 'object',
+									properties: { min: { type: 'integer' }, max: { type: 'integer' } }
+								}
+							}
+						}
+					},
+					blocks: {
+						type: 'array',
+						items: {
+							type: 'object',
+							properties: {
+								name: { type: 'string' },
+								type: {
+									type: 'string',
+									enum: ['accumulation', 'intensification', 'deload']
+								},
+								durationWeeks: { type: 'integer' },
+								description: { type: 'string' },
+								intensityGuidelines: { type: 'string' },
+								volumeGuidelines: { type: 'string' }
+							}
+						}
+					},
+					progressionScheme: {
+						type: 'string',
+						enum: [
+							'linear',
+							'daily_undulating',
+							'weekly_undulating',
+							'block_periodization',
+							'double_progression'
+						]
+					},
+					volumeRecommendations: {
+						type: 'array',
+						items: {
+							type: 'object',
+							properties: {
+								muscleName: { type: 'string' },
+								muscleGroup: { type: 'string' },
+								setsPerWeek: {
+									type: 'object',
+									properties: { min: { type: 'integer' }, max: { type: 'integer' } }
+								},
+								sessionsPerWeek: { type: 'integer' }
+							}
+						}
+					},
+					targetLevel: { type: 'string' },
+					tags: { type: 'array', items: { type: 'string' } }
+				},
+				required: ['id', 'name', 'split', 'daysPerWeek', 'weeklySchedule', 'blocks']
 			},
 			WaitlistInput: {
 				type: 'object',
