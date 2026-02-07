@@ -5791,73 +5791,6 @@ export const exercises = [
 
 	// ---- SHOULDERS ----
 	{
-		name: 'Arnold Press',
-		equipment: ['Dumbbell', 'Adjustable Bench'],
-		muscles: [
-			{ muscle: 'Front Delts', activation: 'primary', weighting: 1.0 },
-			{ muscle: 'Side Delts', activation: 'secondary', weighting: 0.7 },
-			{ muscle: 'Triceps', activation: 'secondary', weighting: 0.5 }
-		],
-		difficulty: 'intermediate' as const,
-		movementPattern: 'vertical_push' as const,
-		plane: 'multi' as const,
-		jointActions: [
-			'shoulder_flexion',
-			'shoulder_abduction',
-			'shoulder_rotation',
-			'elbow_extension'
-		],
-		forceProfile: 'ascending' as const,
-		stretchPosition: 'mid' as const,
-		stabilityDemand: 'medium' as const,
-		unilateral: false,
-		gripType: 'neutral' as const,
-		instructions: [
-			'Sit on bench set to 90 degrees',
-			'Start with dumbbells at shoulder height, palms facing you',
-			'Press up while rotating palms to face forward',
-			'At top, palms face forward in standard press position',
-			'Reverse the rotation as you lower back down'
-		],
-		tips: [
-			'The rotation hits all three delt heads through the movement',
-			'Greater ROM than standard shoulder press',
-			'Made famous by Arnold Schwarzenegger',
-			'Use lighter weight than standard press due to longer ROM'
-		]
-	},
-	{
-		name: 'Reverse Pec Deck',
-		equipment: ['Pec Deck Machine'],
-		muscles: [
-			{ muscle: 'Rear Delts', activation: 'primary', weighting: 1.0 },
-			{ muscle: 'Upper Back', activation: 'secondary', weighting: 0.4 },
-			{ muscle: 'Traps', activation: 'secondary', weighting: 0.3 }
-		],
-		difficulty: 'beginner' as const,
-		movementPattern: 'isolation' as const,
-		plane: 'transverse' as const,
-		jointActions: ['shoulder_horizontal_abduction'],
-		forceProfile: 'bell' as const,
-		stretchPosition: 'lengthened' as const,
-		stabilityDemand: 'low' as const,
-		unilateral: false,
-		gripType: 'neutral' as const,
-		instructions: [
-			'Sit facing the pad on a pec deck machine',
-			'Grip handles with arms extended in front',
-			'Pull handles back in an arc, squeezing rear delts',
-			'Pause at full contraction',
-			'Return with control'
-		],
-		tips: [
-			'Stable setup allows focused rear delt isolation',
-			'Adjust seat height so handles are at shoulder level',
-			'Avoid jerking or using momentum',
-			'Great for high reps - rear delts respond to volume'
-		]
-	},
-	{
 		name: 'Dumbbell Y-Raise',
 		equipment: ['Dumbbell', 'Incline Bench'],
 		muscles: [
@@ -5949,36 +5882,6 @@ export const exercises = [
 			'Keep elbows at shoulder height throughout'
 		]
 	},
-	{
-		name: 'EZ Bar Curl',
-		equipment: ['EZ Curl Bar'],
-		muscles: [
-			{ muscle: 'Biceps', activation: 'primary', weighting: 1.0 },
-			{ muscle: 'Forearms', activation: 'secondary', weighting: 0.35 }
-		],
-		difficulty: 'beginner' as const,
-		movementPattern: 'isolation' as const,
-		plane: 'sagittal' as const,
-		jointActions: ['elbow_flexion'],
-		forceProfile: 'bell' as const,
-		stretchPosition: 'mid' as const,
-		stabilityDemand: 'medium' as const,
-		unilateral: false,
-		gripType: 'underhand' as const,
-		instructions: [
-			'Stand with EZ bar at arms length, grip the angled portion',
-			'Keep elbows close to torso',
-			'Curl bar up by flexing elbows',
-			'Squeeze at top, lower with control'
-		],
-		tips: [
-			'Angled grip reduces wrist strain vs straight bar',
-			'Great all-around bicep builder',
-			'Slightly less supination than straight bar',
-			'Popular choice for lifters with wrist issues'
-		]
-	},
-
 	// ---- ARMS (Triceps) ----
 	{
 		name: 'EZ Bar Skull Crusher',
@@ -6035,38 +5938,6 @@ export const exercises = [
 	},
 
 	// ---- BACK ----
-	{
-		name: 'Meadows Row',
-		equipment: ['Barbell', 'Landmine Attachment'],
-		muscles: [
-			{ muscle: 'Lats', activation: 'primary', weighting: 1.0 },
-			{ muscle: 'Upper Back', activation: 'secondary', weighting: 0.6 },
-			{ muscle: 'Rear Delts', activation: 'secondary', weighting: 0.45 },
-			{ muscle: 'Biceps', activation: 'secondary', weighting: 0.4 }
-		],
-		difficulty: 'intermediate' as const,
-		movementPattern: 'horizontal_pull' as const,
-		plane: 'sagittal' as const,
-		jointActions: ['shoulder_extension', 'elbow_flexion', 'scapular_retraction'],
-		forceProfile: 'ascending' as const,
-		stretchPosition: 'lengthened' as const,
-		stabilityDemand: 'high' as const,
-		unilateral: true,
-		gripType: 'overhand' as const,
-		instructions: [
-			'Stand perpendicular to landmine, stagger stance',
-			'Grip thick end of barbell with overhand grip',
-			'Hinge at hips, brace core',
-			'Row the bar toward hip, driving elbow back',
-			'Lower with control, feeling the lat stretch'
-		],
-		tips: [
-			'Created by John Meadows for lat isolation',
-			'Perpendicular stance creates unique arc of motion',
-			'Overhand grip reduces bicep involvement',
-			'Great for lat width development'
-		]
-	},
 	{
 		name: 'Single-Arm Cable Row',
 		equipment: ['Cable Machine', 'D-Handle Attachment'],
@@ -6132,37 +6003,6 @@ export const exercises = [
 		]
 	},
 	{
-		name: 'Close-Grip Lat Pulldown',
-		equipment: ['Lat Pulldown Machine', 'V-Bar Attachment'],
-		muscles: [
-			{ muscle: 'Lats', activation: 'primary', weighting: 1.0 },
-			{ muscle: 'Biceps', activation: 'secondary', weighting: 0.65 },
-			{ muscle: 'Upper Back', activation: 'secondary', weighting: 0.5 }
-		],
-		difficulty: 'beginner' as const,
-		movementPattern: 'vertical_pull' as const,
-		plane: 'sagittal' as const,
-		jointActions: ['shoulder_adduction', 'shoulder_extension', 'elbow_flexion'],
-		forceProfile: 'constant' as const,
-		stretchPosition: 'lengthened' as const,
-		stabilityDemand: 'low' as const,
-		unilateral: false,
-		gripType: 'neutral' as const,
-		instructions: [
-			'Attach V-bar or close-grip handle to lat pulldown',
-			'Sit with thighs under pads',
-			'Pull handle to upper chest',
-			'Squeeze lats at bottom, lean back slightly',
-			'Return with control to full arm extension'
-		],
-		tips: [
-			'Close neutral grip allows greatest lat ROM',
-			'Slight lean back to clear the head',
-			'Focus on pulling elbows down and back',
-			'Great for lat thickness and lower lat development'
-		]
-	},
-	{
 		name: 'Single-Arm Lat Pulldown',
 		equipment: ['Lat Pulldown Machine', 'D-Handle Attachment'],
 		muscles: [
@@ -6196,67 +6036,6 @@ export const exercises = [
 
 	// ---- LEGS (Quads) ----
 	{
-		name: 'Pendulum Squat',
-		equipment: ['Pendulum Squat Machine'],
-		muscles: [
-			{ muscle: 'Quads', activation: 'primary', weighting: 1.0 },
-			{ muscle: 'Glutes', activation: 'secondary', weighting: 0.5 }
-		],
-		difficulty: 'beginner' as const,
-		movementPattern: 'squat' as const,
-		plane: 'sagittal' as const,
-		jointActions: ['hip_extension', 'knee_extension'],
-		forceProfile: 'descending' as const,
-		stretchPosition: 'lengthened' as const,
-		stabilityDemand: 'low' as const,
-		unilateral: false,
-		gripType: 'none' as const,
-		instructions: [
-			'Step into machine with shoulders against pads',
-			'Place feet on platform at shoulder width',
-			'Release safety and descend by bending knees',
-			'Go as deep as flexibility allows',
-			'Drive through feet to return to start'
-		],
-		tips: [
-			'Arc motion provides excellent quad stretch at bottom',
-			'Very joint-friendly due to guided path',
-			'Less spinal loading than barbell squats',
-			'Increasingly popular in modern gyms'
-		]
-	},
-	{
-		name: 'Belt Squat',
-		equipment: ['Belt Squat Machine'],
-		muscles: [
-			{ muscle: 'Quads', activation: 'primary', weighting: 1.0 },
-			{ muscle: 'Glutes', activation: 'secondary', weighting: 0.6 },
-			{ muscle: 'Adductors', activation: 'secondary', weighting: 0.35 }
-		],
-		difficulty: 'beginner' as const,
-		movementPattern: 'squat' as const,
-		plane: 'sagittal' as const,
-		jointActions: ['hip_extension', 'knee_extension'],
-		forceProfile: 'ascending' as const,
-		stretchPosition: 'lengthened' as const,
-		stabilityDemand: 'medium' as const,
-		unilateral: false,
-		gripType: 'none' as const,
-		instructions: [
-			'Attach belt around hips to machine',
-			'Stand on platform with feet shoulder width or wider',
-			'Squat down keeping torso upright',
-			'Descend to full depth',
-			'Drive through feet to stand'
-		],
-		tips: [
-			'Zero spinal loading - weight hangs from hips',
-			'Perfect for those with back issues',
-			'Can train heavy legs without fatiguing lower back',
-			'Great for adding leg volume without systemic fatigue'
-		]
-	},
-	{
 		name: 'Spanish Squat',
 		equipment: ['Resistance Bands'],
 		muscles: [
@@ -6288,98 +6067,6 @@ export const exercises = [
 	},
 
 	// ---- LEGS (Hamstrings) ----
-	{
-		name: 'Seated Leg Curl',
-		equipment: ['Leg Curl Machine (Seated)'],
-		muscles: [
-			{ muscle: 'Hamstrings', activation: 'primary', weighting: 1.0 },
-			{ muscle: 'Calves', activation: 'secondary', weighting: 0.2 }
-		],
-		difficulty: 'beginner' as const,
-		movementPattern: 'isolation' as const,
-		plane: 'sagittal' as const,
-		jointActions: ['knee_flexion'],
-		forceProfile: 'constant' as const,
-		stretchPosition: 'lengthened' as const,
-		stabilityDemand: 'low' as const,
-		unilateral: false,
-		gripType: 'none' as const,
-		instructions: [
-			'Sit with back against pad, legs over roller',
-			'Adjust so knee joint aligns with machine pivot',
-			'Curl legs under by flexing knees',
-			'Squeeze hamstrings at full contraction',
-			'Return with control to full extension'
-		],
-		tips: [
-			'Seated position stretches hamstrings more than lying',
-			'Superior to lying curl for hamstring hypertrophy per EMG studies',
-			'Hip flexion pre-stretches the hamstrings for greater stimulus',
-			'Lean forward slightly for even more stretch'
-		]
-	},
-	{
-		name: 'Lying Leg Curl',
-		equipment: ['Leg Curl Machine (Lying)'],
-		muscles: [
-			{ muscle: 'Hamstrings', activation: 'primary', weighting: 1.0 },
-			{ muscle: 'Calves', activation: 'secondary', weighting: 0.2 }
-		],
-		difficulty: 'beginner' as const,
-		movementPattern: 'isolation' as const,
-		plane: 'sagittal' as const,
-		jointActions: ['knee_flexion'],
-		forceProfile: 'constant' as const,
-		stretchPosition: 'mid' as const,
-		stabilityDemand: 'low' as const,
-		unilateral: false,
-		gripType: 'none' as const,
-		instructions: [
-			'Lie face-down on machine, ankles under roller',
-			'Adjust so knee joint aligns with machine pivot',
-			'Curl legs up by flexing knees',
-			'Squeeze hamstrings at top',
-			'Lower with control'
-		],
-		tips: [
-			'Hips extended means less hamstring pre-stretch than seated',
-			'Good for those who find seated uncomfortable',
-			'Avoid lifting hips off pad',
-			'Can do single leg for imbalances'
-		]
-	},
-	{
-		name: 'Stiff-Leg Deadlift',
-		equipment: ['Barbell'],
-		muscles: [
-			{ muscle: 'Hamstrings', activation: 'primary', weighting: 1.0 },
-			{ muscle: 'Glutes', activation: 'secondary', weighting: 0.6 },
-			{ muscle: 'Lower Back', activation: 'secondary', weighting: 0.6 }
-		],
-		difficulty: 'intermediate' as const,
-		movementPattern: 'hip_hinge' as const,
-		plane: 'sagittal' as const,
-		jointActions: ['hip_extension'],
-		forceProfile: 'descending' as const,
-		stretchPosition: 'lengthened' as const,
-		stabilityDemand: 'high' as const,
-		unilateral: false,
-		gripType: 'overhand' as const,
-		instructions: [
-			'Stand holding barbell with legs mostly straight',
-			'Hinge at hips, lowering bar along legs',
-			'Keep legs straighter than RDL (minimal knee bend)',
-			'Lower until maximum hamstring stretch',
-			'Drive hips forward to return to standing'
-		],
-		tips: [
-			'More hamstring stretch than RDL due to straighter legs',
-			'Higher lower back demand than RDL',
-			'Do not round the lower back',
-			'Bar stays close to body throughout'
-		]
-	},
-
 	// ---- LEGS (Glutes) ----
 	{
 		name: 'B-Stance Hip Thrust',
@@ -6444,34 +6131,6 @@ export const exercises = [
 	},
 
 	// ---- LEGS (Calves) ----
-	{
-		name: 'Donkey Calf Raise',
-		equipment: ['Calf Raise Machine (Donkey)'],
-		muscles: [{ muscle: 'Calves', activation: 'primary', weighting: 1.0 }],
-		difficulty: 'intermediate' as const,
-		movementPattern: 'isolation' as const,
-		plane: 'sagittal' as const,
-		jointActions: ['ankle_plantarflexion'],
-		forceProfile: 'ascending' as const,
-		stretchPosition: 'lengthened' as const,
-		stabilityDemand: 'low' as const,
-		unilateral: false,
-		gripType: 'none' as const,
-		instructions: [
-			'Position hips under pad on donkey calf machine',
-			'Place balls of feet on platform with heels hanging off',
-			'Let heels drop for full calf stretch',
-			'Rise up on toes as high as possible',
-			'Pause at top, lower with control'
-		],
-		tips: [
-			'Hip flexion pre-stretches gastrocnemius for superior stimulus',
-			'Arnold Schwarzenegger favorite calf exercise',
-			'Full ROM essential - deep stretch to full contraction',
-			'Can replicate with belt squat machine'
-		]
-	},
-
 	// ---- LEGS (Adductors) ----
 	{
 		name: 'Sumo Goblet Squat',
@@ -6665,64 +6324,7 @@ export const exercises = [
 			'Stop if any shoulder discomfort'
 		]
 	},
-	{
-		name: 'Dumbbell Shrug',
-		equipment: ['Dumbbell'],
-		muscles: [{ muscle: 'Traps', activation: 'primary', weighting: 1.0 }],
-		difficulty: 'beginner' as const,
-		movementPattern: 'isolation' as const,
-		plane: 'frontal' as const,
-		jointActions: ['scapular_elevation'],
-		forceProfile: 'bell' as const,
-		stretchPosition: 'mid' as const,
-		stabilityDemand: 'medium' as const,
-		unilateral: false,
-		gripType: 'neutral' as const,
-		instructions: [
-			'Stand holding dumbbells at sides',
-			'Shrug shoulders straight up toward ears',
-			'Hold at top for 1-2 seconds',
-			'Lower with control'
-		],
-		tips: [
-			'Neutral grip with dumbbells is easier on shoulders than barbell',
-			'Focus on up and down movement, avoid rolling shoulders',
-			'Pause at top for maximum trap contraction',
-			'Dumbbells allow slightly more ROM than barbell'
-		]
-	},
-
 	// ---- CORE ----
-	{
-		name: 'Hanging Leg Raise',
-		equipment: ['Pull-up Bar'],
-		muscles: [
-			{ muscle: 'Abs', activation: 'primary', weighting: 1.0 },
-			{ muscle: 'Obliques', activation: 'secondary', weighting: 0.4 }
-		],
-		difficulty: 'advanced' as const,
-		movementPattern: 'isolation' as const,
-		plane: 'sagittal' as const,
-		jointActions: ['spinal_flexion', 'hip_flexion'],
-		forceProfile: 'bell' as const,
-		stretchPosition: 'lengthened' as const,
-		stabilityDemand: 'high' as const,
-		unilateral: false,
-		gripType: 'overhand' as const,
-		instructions: [
-			'Hang from pull-up bar with arms extended',
-			'Keep legs straight',
-			'Raise legs by flexing at hips until parallel or higher',
-			'Curl pelvis up at top for full ab contraction',
-			'Lower with control to full hang'
-		],
-		tips: [
-			'Straight legs make this much harder than knee raises',
-			'Focus on posterior pelvic tilt at top',
-			'Avoid swinging or using momentum',
-			'Progress from hanging knee raises if too difficult'
-		]
-	},
 	{
 		name: 'Kneeling Ab Rollout',
 		equipment: ['Ab Wheel'],
@@ -6812,61 +6414,6 @@ export const exercises = [
 	},
 
 	// ---- FOREARMS ----
-	{
-		name: 'Wrist Curl',
-		equipment: ['Barbell', 'Flat Bench'],
-		muscles: [{ muscle: 'Forearms', activation: 'primary', weighting: 1.0 }],
-		difficulty: 'beginner' as const,
-		movementPattern: 'isolation' as const,
-		plane: 'sagittal' as const,
-		jointActions: ['wrist_flexion'],
-		forceProfile: 'bell' as const,
-		stretchPosition: 'lengthened' as const,
-		stabilityDemand: 'low' as const,
-		unilateral: false,
-		gripType: 'underhand' as const,
-		instructions: [
-			'Sit with forearms resting on thighs or bench, palms up',
-			'Hold barbell with wrists hanging off edge',
-			'Let bar roll to fingers for full stretch',
-			'Curl wrists up, squeezing forearm flexors',
-			'Lower with control'
-		],
-		tips: [
-			'Targets the forearm flexors (inner forearm)',
-			'Let the bar roll to fingers for greater ROM',
-			'High reps work well (15-25 range)',
-			'Can also do with dumbbells for unilateral work'
-		]
-	},
-	{
-		name: 'Reverse Wrist Curl',
-		equipment: ['Barbell', 'Flat Bench'],
-		muscles: [{ muscle: 'Forearms', activation: 'primary', weighting: 1.0 }],
-		difficulty: 'beginner' as const,
-		movementPattern: 'isolation' as const,
-		plane: 'sagittal' as const,
-		jointActions: ['wrist_extension'],
-		forceProfile: 'bell' as const,
-		stretchPosition: 'lengthened' as const,
-		stabilityDemand: 'low' as const,
-		unilateral: false,
-		gripType: 'overhand' as const,
-		instructions: [
-			'Sit with forearms resting on thighs or bench, palms down',
-			'Hold barbell with wrists hanging off edge',
-			'Let wrists drop toward floor',
-			'Extend wrists upward against resistance',
-			'Lower with control'
-		],
-		tips: [
-			'Targets the forearm extensors (outer forearm)',
-			'Use lighter weight than wrist curls',
-			'Important for balanced forearm development',
-			'Helps prevent elbow issues like tennis elbow'
-		]
-	},
-
 	// ---- COMPOUND VARIATIONS ----
 	{
 		name: 'Deficit Deadlift',
@@ -6933,38 +6480,6 @@ export const exercises = [
 			'Builds strength and confidence in the hole',
 			'Use 70-80% of normal squat weight',
 			'Keep tension throughout - do not relax at bottom'
-		]
-	},
-	{
-		name: 'Front Squat',
-		equipment: ['Barbell', 'Squat Rack'],
-		muscles: [
-			{ muscle: 'Quads', activation: 'primary', weighting: 1.0 },
-			{ muscle: 'Glutes', activation: 'secondary', weighting: 0.55 },
-			{ muscle: 'Abs', activation: 'secondary', weighting: 0.5 },
-			{ muscle: 'Upper Back', activation: 'secondary', weighting: 0.4 }
-		],
-		difficulty: 'intermediate' as const,
-		movementPattern: 'squat' as const,
-		plane: 'sagittal' as const,
-		jointActions: ['hip_extension', 'knee_extension'],
-		forceProfile: 'ascending' as const,
-		stretchPosition: 'lengthened' as const,
-		stabilityDemand: 'high' as const,
-		unilateral: false,
-		gripType: 'overhand' as const,
-		instructions: [
-			'Rest barbell on front deltoids with clean grip or cross-arm grip',
-			'Keep elbows high to create a shelf for the bar',
-			'Descend by breaking at hips and knees simultaneously',
-			'Maintain very upright torso throughout',
-			'Drive up through feet to standing'
-		],
-		tips: [
-			'Forces more upright posture than back squat',
-			'More quad dominant, less hip hinge',
-			'Requires good wrist and shoulder mobility for clean grip',
-			'Self-limiting - you will dump the bar forward if form breaks'
 		]
 	},
 	{
