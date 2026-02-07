@@ -15,6 +15,8 @@ import {
 // Users
 export const userProfile = pgTable('user_profile', {
 	id: serial('id').primaryKey(),
+	supabaseUserId: text('supabase_user_id').unique(),
+	email: text('email'),
 	name: text('name'),
 	fitnessLevel: integer('fitness_level'),
 	age: integer('age'),
@@ -334,4 +336,5 @@ export type Exercise = InferSelectModel<typeof exercise>;
 export type ExerciseMuscle = InferSelectModel<typeof exerciseMuscle>;
 export type ExerciseEquipment = InferSelectModel<typeof exerciseEquipment>;
 export type ApiKey = InferSelectModel<typeof apiKey>;
+export type UserProfile = InferSelectModel<typeof userProfile>;
 export type Waitlist = InferSelectModel<typeof waitlist>;

@@ -1,4 +1,6 @@
 <script lang="ts">
+	let { data } = $props();
+
 	let waitlistEmail = $state('');
 	let waitlistStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
 	let waitlistMessage = $state('');
@@ -187,12 +189,26 @@
 					<a href="#pricing" class="text-sm text-zinc-400 transition-colors hover:text-zinc-100"
 						>Pricing</a
 					>
-					<a
-						href="/docs"
-						class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500"
-					>
-						Get API Key
-					</a>
+					{#if data.session}
+						<form method="POST" action="/auth/sign-out">
+							<button
+								type="submit"
+								class="text-sm text-zinc-400 transition-colors hover:text-zinc-100"
+							>
+								Sign Out
+							</button>
+						</form>
+					{:else}
+						<a href="/sign-in" class="text-sm text-zinc-400 transition-colors hover:text-zinc-100"
+							>Sign In</a
+						>
+						<a
+							href="/sign-up"
+							class="rounded-lg bg-purple-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-purple-500"
+						>
+							Sign Up
+						</a>
+					{/if}
 				</div>
 			</div>
 		</nav>

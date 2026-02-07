@@ -1,11 +1,51 @@
 import type { Handle } from '@sveltejs/kit';
+import type { User, Session } from '@supabase/supabase-js';
 
 import { env } from '$env/dynamic/private';
 import { sequence } from '@sveltejs/kit/hooks';
+import { PUBLIC_SUPABASE_URL } from '$env/static/public';
 
+import { getUserProfileBySupabaseId } from '$lib/server/api/userProfile';
+import { createSupabaseServerClient } from '$lib/server/auth/supabase-server';
 import { type ValidatedApiKey, validateApiKey } from '$lib/server/api/apiKeys';
 import { type RateLimitTier, checkRateLimit, getRateLimitHeaders } from '$lib/server/ratelimit';
 
+// ── Supabase Auth Hook ──────────────────────────────────────────────
+// Creates per-request Supabase client and session accessor.
+// Must run before apiAuth so event.locals.supabase is available.
+const supabaseAuth: Handle = async ({ event, resolve }) => {
+	event.locals.supabase = createSupabaseServerClient(event.cookies);
+
+	event.locals.safeGetSession = async (): Promise<{
+		session: Session | null;
+		user: User | null;
+	}> => {
+		const {
+			data: { session }
+		} = await event.locals.supabase.auth.getSession();
+		if (!session) {
+			return { session: null, user: null };
+		}
+
+		const {
+			data: { user },
+			error
+		} = await event.locals.supabase.auth.getUser();
+		if (error || !user) {
+			return { session: null, user: null };
+		}
+
+		return { session, user };
+	};
+
+	return resolve(event, {
+		filterSerializedResponseHeaders(name) {
+			return name === 'content-range' || name === 'x-supabase-api-version';
+		}
+	});
+};
+
+// ── Security Headers Hook ───────────────────────────────────────────
 const securityHeaders: Handle = async ({ event, resolve }) => {
 	const response = await resolve(event);
 	const headers = new Headers(response.headers);
@@ -28,18 +68,19 @@ const securityHeaders: Handle = async ({ event, resolve }) => {
 	// Restrict browser features we don't use
 	headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
 
-	// CSP — Scalar loads in an iframe (static/scalar.html) so the main app CSP stays strict
+	// CSP — allow Supabase and OAuth provider domains
+	const supabaseDomain = new URL(PUBLIC_SUPABASE_URL).hostname;
 	const csp = [
 		"default-src 'self'",
 		"script-src 'self' 'unsafe-inline'",
 		"style-src 'self' 'unsafe-inline'",
-		"img-src 'self' data:",
+		`img-src 'self' data: https://lh3.googleusercontent.com https://*.googleusercontent.com`,
 		"font-src 'self'",
-		"connect-src 'self'",
+		`connect-src 'self' https://${supabaseDomain}`,
 		"frame-src 'self'",
 		"frame-ancestors 'none'",
 		"base-uri 'self'",
-		"form-action 'self'"
+		"form-action 'self' https://accounts.google.com https://appleid.apple.com"
 	].join('; ');
 
 	headers.set('Content-Security-Policy', csp);
@@ -51,6 +92,8 @@ const securityHeaders: Handle = async ({ event, resolve }) => {
 	});
 };
 
+// ── API Auth Hook ───────────────────────────────────────────────────
+// Supports both X-API-Key (machine clients) and Bearer token (user clients).
 const apiAuth: Handle = async ({ event, resolve }) => {
 	const apiHost = env.API_HOST || 'api.logmaxing.tech';
 	const isApiSubdomain = event.url.host === apiHost;
@@ -72,6 +115,7 @@ const apiAuth: Handle = async ({ event, resolve }) => {
 	}
 
 	const apiKeyHeader = event.request.headers.get('X-API-Key');
+	const authHeader = event.request.headers.get('Authorization');
 	const clientIp = event.getClientAddress();
 
 	let validatedKey: ValidatedApiKey | null = null;
@@ -93,12 +137,71 @@ const apiAuth: Handle = async ({ event, resolve }) => {
 		);
 	}
 
-	// Require API key for all endpoints
-	if (!apiKeyHeader) {
+	// Strategy 1: API Key authentication (existing behavior)
+	if (apiKeyHeader) {
+		validatedKey = await validateApiKey(apiKeyHeader);
+
+		if (!validatedKey) {
+			return new Response(
+				JSON.stringify({
+					error: 'Unauthorized',
+					message: 'Invalid or revoked API key'
+				}),
+				{
+					status: 401,
+					headers: { 'Content-Type': 'application/json' }
+				}
+			);
+		}
+
+		event.locals.apiKey = validatedKey;
+		tier = validatedKey.tier;
+	}
+	// Strategy 2: Supabase JWT Bearer token
+	else if (authHeader?.startsWith('Bearer ')) {
+		const token = authHeader.slice(7);
+
+		const {
+			data: { user },
+			error
+		} = await event.locals.supabase.auth.getUser(token);
+
+		if (error || !user) {
+			return new Response(
+				JSON.stringify({
+					error: 'Unauthorized',
+					message: 'Invalid or expired Bearer token'
+				}),
+				{
+					status: 401,
+					headers: { 'Content-Type': 'application/json' }
+				}
+			);
+		}
+
+		const profile = await getUserProfileBySupabaseId(user.id);
+		if (!profile) {
+			return new Response(
+				JSON.stringify({
+					error: 'Forbidden',
+					message: 'No user profile found. Complete registration first.'
+				}),
+				{
+					status: 403,
+					headers: { 'Content-Type': 'application/json' }
+				}
+			);
+		}
+
+		event.locals.user = user;
+		event.locals.userProfile = profile;
+	}
+	// No authentication provided
+	else {
 		return new Response(
 			JSON.stringify({
 				error: 'Unauthorized',
-				message: 'API key required. Include X-API-Key header in your request.'
+				message: 'API key or Bearer token required.'
 			}),
 			{
 				status: 401,
@@ -107,28 +210,10 @@ const apiAuth: Handle = async ({ event, resolve }) => {
 		);
 	}
 
-	// Validate the API key
-	validatedKey = await validateApiKey(apiKeyHeader);
-
-	if (!validatedKey) {
-		return new Response(
-			JSON.stringify({
-				error: 'Unauthorized',
-				message: 'Invalid or revoked API key'
-			}),
-			{
-				status: 401,
-				headers: { 'Content-Type': 'application/json' }
-			}
-		);
-	}
-
-	// Use key ID for rate limiting (more accurate than raw key)
-	const identifier = `key:${validatedKey.id}`;
-	tier = validatedKey.tier;
-
-	// Attach to locals for route handlers
-	event.locals.apiKey = validatedKey;
+	// Rate limit identifier based on auth method
+	const identifier = validatedKey
+		? `key:${validatedKey.id}`
+		: `user:${event.locals.userProfile!.id}`;
 
 	// Check rate limit based on tier
 	const result = await checkRateLimit(identifier, tier);
@@ -165,5 +250,5 @@ const apiAuth: Handle = async ({ event, resolve }) => {
 	});
 };
 
-// Security headers run first (outermost), then API auth
-export const handle = sequence(securityHeaders, apiAuth);
+// Supabase auth first (populates locals.supabase), then security headers, then API auth
+export const handle = sequence(supabaseAuth, securityHeaders, apiAuth);

@@ -1,13 +1,29 @@
 <script lang="ts">
+	import { onMount } from 'svelte';
 	import { page } from '$app/state';
+	import { invalidate } from '$app/navigation';
 
 	import favicon from '$lib/assets/favicon.svg';
 
 	import './layout.css';
 
-	let { children } = $props();
+	let { children, data } = $props();
 
 	const canonicalUrl = $derived(`https://logmaxing.tech${page.url.pathname}`);
+
+	onMount(() => {
+		const {
+			data: { subscription }
+		} = data.supabase.auth.onAuthStateChange(
+			(_: unknown, newSession: { expires_at?: number } | null) => {
+				if (newSession?.expires_at !== data.session?.expires_at) {
+					invalidate('supabase:auth');
+				}
+			}
+		);
+
+		return () => subscription.unsubscribe();
+	});
 </script>
 
 <svelte:head>

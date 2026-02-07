@@ -55,6 +55,8 @@
 	},
 	"dependencies": {
 		"@libsql/client": "^0.17.0",
+		"@supabase/ssr": "^0.8.0",
+		"@supabase/supabase-js": "^2.95.3",
 		"@upstash/ratelimit": "^2.0.8",
 		"@upstash/redis": "^1.36.1",
 		"drizzle-valibot": "^0.4.2",
