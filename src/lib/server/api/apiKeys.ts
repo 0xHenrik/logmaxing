@@ -9,6 +9,13 @@ import { type ApiKey, apiKey } from '../db/schema';
 
 export type ApiKeyTier = 'free' | 'developer' | 'pro' | 'enterprise';
 
+export const KEY_LIMITS: Record<ApiKeyTier, number> = {
+	free: 1,
+	developer: 5,
+	pro: 15,
+	enterprise: 50
+};
+
 export interface CreateApiKeyInput {
 	userId: number;
 	name: string;
