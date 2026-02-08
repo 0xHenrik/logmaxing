@@ -198,6 +198,35 @@ export async function getApiKeysByUser(userId: number): Promise<Omit<ApiKey, 'ke
 }
 
 /**
+ * Get all API keys for a user by their Supabase user ID.
+ * Uses a JOIN so it can be called without knowing the numeric profile ID.
+ */
+export async function getApiKeysBySupabaseUser(
+	supabaseUserId: string
+): Promise<Omit<ApiKey, 'keyHash'>[]> {
+	const results = await db
+		.select({
+			id: apiKey.id,
+			userId: apiKey.userId,
+			keyPrefix: apiKey.keyPrefix,
+			name: apiKey.name,
+			tier: apiKey.tier,
+			lastUsedAt: apiKey.lastUsedAt,
+			usageCount: apiKey.usageCount,
+			createdAt: apiKey.createdAt,
+			expiresAt: apiKey.expiresAt,
+			revokedAt: apiKey.revokedAt,
+			isActive: apiKey.isActive
+		})
+		.from(apiKey)
+		.innerJoin(userProfile, eq(apiKey.userId, userProfile.id))
+		.where(eq(userProfile.supabaseUserId, supabaseUserId))
+		.orderBy(apiKey.createdAt);
+
+	return results;
+}
+
+/**
  * Get a single API key by ID (without the hash).
  * Only returns the key if it belongs to the specified user.
  */
