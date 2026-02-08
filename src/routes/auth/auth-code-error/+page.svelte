@@ -1,9 +1,14 @@
 <script lang="ts">
 	import { page } from '$app/state';
 
+	const ERROR_MESSAGES: Record<string, string> = {
+		expired: 'The authentication link has expired. Please try signing in again.',
+		invalid: 'The authentication link is invalid. Please try signing in again.',
+		unknown: 'Something went wrong during authentication. Please try signing in again.'
+	};
+
 	const message = $derived(
-		page.url.searchParams.get('message') ||
-			'The authentication link is invalid or has expired. Please try signing in again.'
+		ERROR_MESSAGES[page.url.searchParams.get('error') ?? ''] ?? ERROR_MESSAGES.unknown
 	);
 </script>
 

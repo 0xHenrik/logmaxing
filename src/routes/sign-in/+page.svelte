@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
+	import { goto, invalidateAll } from '$app/navigation';
 
 	let { data } = $props();
 
@@ -23,7 +23,8 @@
 			return;
 		}
 
-		goto('/');
+		await invalidateAll();
+		goto('/dashboard');
 	}
 
 	async function handleOAuth(provider: 'google' | 'apple') {

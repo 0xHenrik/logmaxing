@@ -4,20 +4,25 @@ import { redirect } from '@sveltejs/kit';
 
 import { getOrCreateUserProfile } from '$lib/server/api/userProfile';
 
+/** Validate redirect target is a safe internal path (prevents open redirect). */
+function safeRedirect(next: string | null): string {
+	if (!next) return '/';
+	// Strip leading slashes to prevent protocol-relative redirects (//evil.com)
+	const cleaned = next.replace(/^\/+/, '');
+	// Block colons (protocol), backslashes, and relative traversal
+	if (/[:\\]/.test(cleaned) || cleaned.startsWith('.')) return '/';
+	return `/${cleaned}`;
+}
+
 export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 	const code = url.searchParams.get('code');
 	const token_hash = url.searchParams.get('token_hash');
 	const type = url.searchParams.get('type');
-	const next = url.searchParams.get('next') ?? '/';
-
-	// Log all params for debugging
-	console.log('[auth/callback] params:', { code: !!code, token_hash: !!token_hash, type, next });
-	console.log('[auth/callback] full URL:', url.toString());
+	const next = safeRedirect(url.searchParams.get('next'));
 
 	// PKCE flow (OAuth and newer email confirmations)
 	if (code) {
 		const { error } = await supabase.auth.exchangeCodeForSession(code);
-		console.log('[auth/callback] code exchange result:', error ? error.message : 'success');
 
 		if (!error) {
 			const {
@@ -30,7 +35,7 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 					user.user_metadata?.full_name ?? user.user_metadata?.name
 				);
 			}
-			redirect(303, `/${next.slice(1)}`);
+			redirect(303, next);
 		}
 	}
 
@@ -40,7 +45,6 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 			token_hash,
 			type: type as 'signup' | 'email'
 		});
-		console.log('[auth/callback] token_hash verify result:', error ? error.message : 'success');
 
 		if (!error) {
 			const {
@@ -53,12 +57,16 @@ export const GET: RequestHandler = async ({ url, locals: { supabase } }) => {
 					user.user_metadata?.full_name ?? user.user_metadata?.name
 				);
 			}
-			redirect(303, `/${next.slice(1)}`);
+			redirect(303, next);
 		}
 	}
 
-	// Supabase redirects with error params when the link is invalid/expired
+	// Auth failed — redirect to error page with a safe error code
 	const errorDesc = url.searchParams.get('error_description');
-	const errorMsg = errorDesc ? encodeURIComponent(errorDesc) : '';
-	redirect(303, `/auth/auth-code-error${errorMsg ? `?message=${errorMsg}` : ''}`);
+	const errorCode = errorDesc?.includes('expired')
+		? 'expired'
+		: errorDesc?.includes('invalid')
+			? 'invalid'
+			: 'unknown';
+	redirect(303, `/auth/auth-code-error?error=${errorCode}`);
 };
