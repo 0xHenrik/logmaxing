@@ -13,6 +13,11 @@
 	);
 	let copied = $state(false);
 	let creating = $state(false);
+	let checkoutStatus = $derived(
+		typeof window !== 'undefined'
+			? new URLSearchParams(window.location.search).get('checkout')
+			: null
+	);
 
 	// Derived data
 	let revokedKeys = $derived(
@@ -47,6 +52,12 @@
 		copied = true;
 		setTimeout(() => (copied = false), 2000);
 	}
+
+	const upgradeTiers = [
+		{ name: 'developer', price: '$29/mo', calls: '5,000/mo' },
+		{ name: 'pro', price: '$99/mo', calls: '25,000/mo' },
+		{ name: 'enterprise', price: '$299/mo', calls: '100,000/mo' }
+	];
 
 	function tierLabel(tier: string): string {
 		return tier.charAt(0).toUpperCase() + tier.slice(1);
@@ -123,6 +134,74 @@
 			{revokedKeys.length} revoked
 		</p>
 	</div>
+</div>
+
+<!-- Checkout status banner -->
+{#if checkoutStatus === 'success'}
+	<div
+		class="mb-6 rounded-xl border border-emerald-500/20 bg-emerald-500/6 px-4 py-3 text-[13px] text-emerald-300"
+	>
+		Subscription activated! Your tier has been upgraded.
+	</div>
+{:else if checkoutStatus === 'canceled'}
+	<div
+		class="mb-6 rounded-xl border border-zinc-700/40 bg-zinc-800/30 px-4 py-3 text-[13px] text-zinc-400"
+	>
+		Checkout canceled. No changes were made.
+	</div>
+{/if}
+
+<!-- Subscription section -->
+<div class="mb-6 rounded-xl border border-zinc-800/60 bg-zinc-900/40 p-5">
+	<div class="flex items-center justify-between">
+		<div>
+			<p class="text-[11px] font-medium tracking-wider text-zinc-500 uppercase">Subscription</p>
+			<p class="mt-1 text-lg font-semibold text-zinc-100 capitalize">
+				{data.profile.subscriptionTier} Plan
+			</p>
+			{#if data.profile.subscriptionStatus === 'active' && data.profile.subscriptionCurrentPeriodEnd}
+				<p class="mt-0.5 text-[11px] text-zinc-500">
+					Renews {new Date(data.profile.subscriptionCurrentPeriodEnd).toLocaleDateString('en-US', {
+						month: 'long',
+						day: 'numeric',
+						year: 'numeric'
+					})}
+				</p>
+			{:else if data.profile.subscriptionStatus === 'canceled'}
+				<p class="mt-0.5 text-[11px] text-amber-400/80">Canceled — reverts to Free at period end</p>
+			{:else if data.profile.subscriptionStatus === 'past_due'}
+				<p class="mt-0.5 text-[11px] text-red-400/80">Payment past due — update billing info</p>
+			{/if}
+		</div>
+
+		{#if data.profile.subscriptionTier !== 'free'}
+			<form method="POST" action="?/manageBilling" use:enhance>
+				<button
+					type="submit"
+					class="rounded-lg border border-zinc-700 px-3.5 py-2 text-[13px] font-medium text-zinc-300 transition-all duration-150 hover:border-zinc-600 hover:text-zinc-100 active:scale-[0.97]"
+				>
+					Manage Billing
+				</button>
+			</form>
+		{/if}
+	</div>
+
+	{#if data.profile.subscriptionTier === 'free'}
+		<div class="mt-4 grid gap-2 sm:grid-cols-3">
+			{#each upgradeTiers as tier (tier.name)}
+				<form method="POST" action="?/checkout" use:enhance>
+					<input type="hidden" name="tier" value={tier.name} />
+					<button
+						type="submit"
+						class="w-full rounded-lg border border-zinc-700 px-3.5 py-3 text-left transition-all duration-150 hover:border-purple-500/50 hover:bg-purple-500/4 active:scale-[0.98]"
+					>
+						<p class="text-[13px] font-medium text-zinc-200 capitalize">{tier.name}</p>
+						<p class="text-[12px] text-zinc-500">{tier.price} &middot; {tier.calls}</p>
+					</button>
+				</form>
+			{/each}
+		</div>
+	{/if}
 </div>
 
 <!-- Key list -->

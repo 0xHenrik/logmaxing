@@ -3,7 +3,7 @@ import { createHash, randomBytes } from 'crypto';
 import { eq, and, sql } from 'drizzle-orm';
 
 import { db } from '../db';
-import { type ApiKey, apiKey } from '../db/schema';
+import { type ApiKey, apiKey, userProfile } from '../db/schema';
 
 // ============ TYPES ============
 
@@ -105,13 +105,14 @@ export async function validateApiKey(rawKey: string): Promise<ValidatedApiKey | 
 		.select({
 			id: apiKey.id,
 			userId: apiKey.userId,
-			tier: apiKey.tier,
 			name: apiKey.name,
 			isActive: apiKey.isActive,
 			revokedAt: apiKey.revokedAt,
-			expiresAt: apiKey.expiresAt
+			expiresAt: apiKey.expiresAt,
+			subscriptionTier: userProfile.subscriptionTier
 		})
 		.from(apiKey)
+		.innerJoin(userProfile, eq(apiKey.userId, userProfile.id))
 		.where(eq(apiKey.keyHash, keyHash));
 
 	if (!result) return null;
@@ -125,10 +126,10 @@ export async function validateApiKey(rawKey: string): Promise<ValidatedApiKey | 
 		console.error(`Failed to update usage for key ${result.id}:`, err);
 	});
 
-	// Validate tier from database to prevent invalid values
+	// Use the user's subscription tier (all keys inherit user tier)
 	const validTiers: ApiKeyTier[] = ['free', 'developer', 'pro', 'enterprise'];
-	const tier = validTiers.includes(result.tier as ApiKeyTier)
-		? (result.tier as ApiKeyTier)
+	const tier = validTiers.includes(result.subscriptionTier as ApiKeyTier)
+		? (result.subscriptionTier as ApiKeyTier)
 		: 'free';
 
 	return {

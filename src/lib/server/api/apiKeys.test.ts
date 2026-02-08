@@ -130,7 +130,8 @@ describe('validateApiKey', () => {
 
 	function mockDbSelect(result: unknown[] | undefined) {
 		const mockWhere = vi.fn().mockResolvedValue(result ?? []);
-		const mockFrom = vi.fn().mockReturnValue({ where: mockWhere });
+		const mockInnerJoin = vi.fn().mockReturnValue({ where: mockWhere });
+		const mockFrom = vi.fn().mockReturnValue({ innerJoin: mockInnerJoin, where: mockWhere });
 		vi.mocked(db.select).mockReturnValue({ from: mockFrom } as unknown as ReturnType<
 			typeof db.select
 		>);
@@ -146,7 +147,7 @@ describe('validateApiKey', () => {
 			{
 				id: 1,
 				userId: 42,
-				tier: 'pro',
+				subscriptionTier: 'pro',
 				name: 'My Key',
 				isActive: true,
 				revokedAt: null,
@@ -188,7 +189,7 @@ describe('validateApiKey', () => {
 			{
 				id: 1,
 				userId: 42,
-				tier: 'free',
+				subscriptionTier: 'free',
 				name: 'Revoked Key',
 				isActive: false,
 				revokedAt: new Date('2026-01-01'),
@@ -205,7 +206,7 @@ describe('validateApiKey', () => {
 			{
 				id: 1,
 				userId: 42,
-				tier: 'free',
+				subscriptionTier: 'free',
 				name: 'Inactive Key',
 				isActive: false,
 				revokedAt: null,
@@ -222,7 +223,7 @@ describe('validateApiKey', () => {
 			{
 				id: 1,
 				userId: 42,
-				tier: 'free',
+				subscriptionTier: 'free',
 				name: 'Expired Key',
 				isActive: true,
 				revokedAt: null,
@@ -239,7 +240,7 @@ describe('validateApiKey', () => {
 			{
 				id: 1,
 				userId: 42,
-				tier: 'developer',
+				subscriptionTier: 'developer',
 				name: 'Future Key',
 				isActive: true,
 				revokedAt: null,
@@ -252,12 +253,12 @@ describe('validateApiKey', () => {
 		expect(result!.tier).toBe('developer');
 	});
 
-	it('defaults to "free" tier for invalid tier value in DB', async () => {
+	it('defaults to "free" tier for invalid subscriptionTier value in DB', async () => {
 		mockDbSelect([
 			{
 				id: 1,
 				userId: 42,
-				tier: 'invalid_tier',
+				subscriptionTier: 'invalid_tier',
 				name: 'Bad Tier',
 				isActive: true,
 				revokedAt: null,

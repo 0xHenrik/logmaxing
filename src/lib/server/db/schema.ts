@@ -20,7 +20,14 @@ export const userProfile = pgTable('user_profile', {
 	name: text('name'),
 	fitnessLevel: integer('fitness_level'),
 	age: integer('age'),
-	sex: text('sex')
+	sex: text('sex'),
+	// Stripe subscription
+	stripeCustomerId: text('stripe_customer_id').unique(),
+	stripeSubscriptionId: text('stripe_subscription_id'),
+	stripePriceId: text('stripe_price_id'),
+	subscriptionTier: text('subscription_tier').notNull().default('free'),
+	subscriptionStatus: text('subscription_status'),
+	subscriptionCurrentPeriodEnd: timestamp('subscription_current_period_end', { withTimezone: true })
 });
 
 // Muscles (with volume thresholds merged in)

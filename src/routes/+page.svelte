@@ -391,7 +391,32 @@
 							<h3 class="mb-1 font-semibold text-zinc-100">{tier.name}</h3>
 							<div class="mb-4 text-3xl font-bold text-white">{tier.price}</div>
 							<p class="mb-2 text-sm text-zinc-400">{tier.calls} requests</p>
-							<p class="text-sm text-zinc-400">{tier.target}</p>
+							<p class="mb-4 text-sm text-zinc-400">{tier.target}</p>
+							{#if tier.name === 'Free'}
+								<a
+									href="/sign-up"
+									class="block w-full rounded-lg border border-zinc-700 px-4 py-2 text-center text-[13px] font-medium text-zinc-300 transition-all hover:border-zinc-500 hover:text-zinc-100"
+								>
+									Get Started
+								</a>
+							{:else if data.session}
+								<form method="POST" action="/dashboard?/checkout">
+									<input type="hidden" name="tier" value={tier.name.toLowerCase()} />
+									<button
+										type="submit"
+										class="w-full rounded-lg bg-purple-600 px-4 py-2 text-[13px] font-medium text-white transition-all hover:bg-purple-500 active:scale-[0.97]"
+									>
+										Subscribe
+									</button>
+								</form>
+							{:else}
+								<a
+									href="/sign-up"
+									class="block w-full rounded-lg bg-purple-600 px-4 py-2 text-center text-[13px] font-medium text-white transition-all hover:bg-purple-500"
+								>
+									Sign Up
+								</a>
+							{/if}
 						</div>
 					{/each}
 				</div>

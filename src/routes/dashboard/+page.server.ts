@@ -5,6 +5,7 @@ import * as v from 'valibot';
 import { fail, redirect } from '@sveltejs/kit';
 
 import { getOrCreateUserProfile } from '$lib/server/api/userProfile';
+import { createCheckoutSession, createBillingPortalSession } from '$lib/server/api/subscriptions';
 import {
 	KEY_LIMITS,
 	createApiKey,
@@ -34,7 +35,7 @@ export const actions: Actions = {
 
 		const existing = await getApiKeysByUser(profile.id);
 		const activeCount = existing.filter((k) => k.isActive && !k.revokedAt).length;
-		const tier = (existing[0]?.tier ?? 'free') as ApiKeyTier;
+		const tier = (profile.subscriptionTier ?? 'free') as ApiKeyTier;
 		const maxKeys = KEY_LIMITS[tier] ?? 1;
 
 		if (activeCount >= maxKeys) {
@@ -104,5 +105,45 @@ export const actions: Actions = {
 		}
 
 		return { deleted: true as const };
+	},
+
+	checkout: async ({ request, locals, url }) => {
+		const profile = await getProfile(locals);
+		const formData = await request.formData();
+		const tier = formData.get('tier')?.toString();
+
+		if (!tier || !['developer', 'pro', 'enterprise'].includes(tier)) {
+			return fail(400, { action: 'checkout' as const, error: 'Invalid tier' });
+		}
+
+		try {
+			const checkoutUrl = await createCheckoutSession(
+				profile.id,
+				tier as 'developer' | 'pro' | 'enterprise',
+				`${url.origin}/dashboard?checkout=success`,
+				`${url.origin}/dashboard?checkout=canceled`
+			);
+			redirect(303, checkoutUrl);
+		} catch (e) {
+			if (e && typeof e === 'object' && 'status' in e) throw e; // re-throw redirect
+			console.error('Checkout error:', e);
+			return fail(500, { action: 'checkout' as const, error: 'Failed to start checkout' });
+		}
+	},
+
+	manageBilling: async ({ locals, url }) => {
+		const profile = await getProfile(locals);
+
+		try {
+			const portalUrl = await createBillingPortalSession(profile.id, `${url.origin}/dashboard`);
+			redirect(303, portalUrl);
+		} catch (e) {
+			if (e && typeof e === 'object' && 'status' in e) throw e; // re-throw redirect
+			console.error('Billing portal error:', e);
+			return fail(500, {
+				action: 'manageBilling' as const,
+				error: 'Failed to open billing portal'
+			});
+		}
 	}
 };

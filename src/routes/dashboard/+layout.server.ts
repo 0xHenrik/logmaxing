@@ -23,13 +23,18 @@ export const load: LayoutServerLoad = async ({ locals }) => {
 
 	const activeKeys = keys.filter((k) => k.isActive && !k.revokedAt);
 	const totalUsage = keys.reduce((sum, k) => sum + k.usageCount, 0);
-	const tier = (activeKeys[0]?.tier ?? 'free') as ApiKeyTier;
+	const tier = (profile.subscriptionTier ?? 'free') as ApiKeyTier;
 
 	return {
 		profile: {
 			id: profile.id,
 			email: profile.email,
-			name: profile.name
+			name: profile.name,
+			subscriptionTier: profile.subscriptionTier ?? 'free',
+			subscriptionStatus: profile.subscriptionStatus,
+			subscriptionCurrentPeriodEnd: profile.subscriptionCurrentPeriodEnd
+				? profile.subscriptionCurrentPeriodEnd.toISOString()
+				: null
 		},
 		keys,
 		stats: {

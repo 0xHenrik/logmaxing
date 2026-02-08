@@ -62,6 +62,7 @@
 		"drizzle-valibot": "^0.4.2",
 		"eslint-plugin-perfectionist": "^5.4.0",
 		"postgres": "^3.4.8",
+		"stripe": "^20.3.1",
 		"valibot": "^1.2.0"
 	},
 	"lint-staged": {

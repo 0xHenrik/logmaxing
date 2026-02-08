@@ -80,7 +80,7 @@ const securityHeaders: Handle = async ({ event, resolve }) => {
 		"frame-src 'self'",
 		"frame-ancestors 'none'",
 		"base-uri 'self'",
-		"form-action 'self' https://accounts.google.com https://appleid.apple.com"
+		"form-action 'self' https://accounts.google.com https://appleid.apple.com https://checkout.stripe.com"
 	].join('; ');
 
 	headers.set('Content-Security-Policy', csp);
@@ -108,7 +108,9 @@ const apiAuth: Handle = async ({ event, resolve }) => {
 	const isPublic =
 		pathname.includes('openapi.json') ||
 		pathname.startsWith('/api/waitlist') ||
-		(isApiSubdomain && pathname === '/waitlist');
+		pathname.startsWith('/api/stripe/webhook') ||
+		(isApiSubdomain && pathname === '/waitlist') ||
+		(isApiSubdomain && pathname === '/stripe/webhook');
 
 	if (!isApiRoute || isPublic) {
 		return resolve(event);
@@ -206,6 +208,7 @@ const apiAuth: Handle = async ({ event, resolve }) => {
 
 		event.locals.user = user;
 		event.locals.userProfile = profile;
+		tier = (profile.subscriptionTier as RateLimitTier) || 'free';
 	}
 	// No authentication provided
 	else {
