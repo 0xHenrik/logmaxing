@@ -121,20 +121,23 @@ const apiAuth: Handle = async ({ event, resolve }) => {
 	let validatedKey: ValidatedApiKey | null = null;
 	let tier: RateLimitTier = 'free';
 
-	// Rate-limit authentication attempts per IP to prevent brute force
-	const authRl = await checkRateLimit(`auth_attempt:${clientIp}`, 'auth_attempt');
-	if (!authRl.success) {
-		return new Response(
-			JSON.stringify({
-				error: 'Too Many Requests',
-				message: 'Too many authentication attempts. Please try again later.',
-				retryAfter: Math.ceil((authRl.reset - Date.now()) / 1000)
-			}),
-			{
-				status: 429,
-				headers: { 'Content-Type': 'application/json' }
-			}
-		);
+	// Helper: check brute-force rate limit on failed auth (per IP)
+	async function checkAuthAttemptLimit() {
+		const authRl = await checkRateLimit(`auth_attempt:${clientIp}`, 'auth_attempt');
+		if (!authRl.success) {
+			return new Response(
+				JSON.stringify({
+					error: 'Too Many Requests',
+					message: 'Too many authentication attempts. Please try again later.',
+					retryAfter: Math.ceil((authRl.reset - Date.now()) / 1000)
+				}),
+				{
+					status: 429,
+					headers: { 'Content-Type': 'application/json' }
+				}
+			);
+		}
+		return null;
 	}
 
 	// Strategy 1: API Key authentication (existing behavior)
@@ -142,6 +145,10 @@ const apiAuth: Handle = async ({ event, resolve }) => {
 		validatedKey = await validateApiKey(apiKeyHeader);
 
 		if (!validatedKey) {
+			// Count failed attempt against brute-force limit
+			const blocked = await checkAuthAttemptLimit();
+			if (blocked) return blocked;
+
 			return new Response(
 				JSON.stringify({
 					error: 'Unauthorized',
@@ -167,6 +174,10 @@ const apiAuth: Handle = async ({ event, resolve }) => {
 		} = await event.locals.supabase.auth.getUser(token);
 
 		if (error || !user) {
+			// Count failed attempt against brute-force limit
+			const blocked = await checkAuthAttemptLimit();
+			if (blocked) return blocked;
+
 			return new Response(
 				JSON.stringify({
 					error: 'Unauthorized',
@@ -198,6 +209,10 @@ const apiAuth: Handle = async ({ event, resolve }) => {
 	}
 	// No authentication provided
 	else {
+		// Count missing-auth attempt against brute-force limit
+		const blocked = await checkAuthAttemptLimit();
+		if (blocked) return blocked;
+
 		return new Response(
 			JSON.stringify({
 				error: 'Unauthorized',

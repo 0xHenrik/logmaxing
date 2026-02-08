@@ -3,7 +3,7 @@ import type { RequestHandler } from '@sveltejs/kit';
 import * as v from 'valibot';
 
 import { requireJson } from '$lib/server/api/validation';
-import { createApiKey, getApiKeysByUser } from '$lib/server/api/apiKeys';
+import { KEY_LIMITS, createApiKey, getApiKeysByUser } from '$lib/server/api/apiKeys';
 
 const createKeySchema = v.object({
 	name: v.pipe(v.string(), v.minLength(1), v.maxLength(100)),
@@ -30,13 +30,7 @@ export const POST: RequestHandler = async ({ request, locals }) => {
 	if (ctError) return ctError;
 
 	// Enforce per-user key limits by tier
-	const KEY_LIMITS: Record<string, number> = {
-		free: 5,
-		developer: 10,
-		pro: 25,
-		enterprise: 100
-	};
-	const maxKeys = KEY_LIMITS[locals.apiKey.tier] ?? 5;
+	const maxKeys = KEY_LIMITS[locals.apiKey.tier] ?? 1;
 	const existingKeys = await getApiKeysByUser(locals.apiKey.userId);
 	const activeKeyCount = existingKeys.filter((k) => k.isActive && !k.revokedAt).length;
 	if (activeKeyCount >= maxKeys) {

@@ -190,6 +190,9 @@
 						>Pricing</a
 					>
 					{#if data.session}
+						<a href="/dashboard" class="text-sm text-zinc-400 transition-colors hover:text-zinc-100"
+							>Dashboard</a
+						>
 						<form method="POST" action="/auth/sign-out">
 							<button
 								type="submit"
