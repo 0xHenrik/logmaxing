@@ -6,8 +6,9 @@ import { redirect } from '@sveltejs/kit';
 import { getOrCreateUserProfile } from '$lib/server/api/userProfile';
 import { KEY_LIMITS, getApiKeysBySupabaseUser } from '$lib/server/api/apiKeys';
 
-export const load: LayoutServerLoad = async ({ locals }) => {
-	const { session, user } = await locals.safeGetSession();
+export const load: LayoutServerLoad = async ({ parent }) => {
+	// Get auth from root layout (already resolved, no extra network call)
+	const { session, user } = await parent();
 
 	if (!session || !user) {
 		redirect(303, '/sign-in');

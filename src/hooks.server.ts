@@ -16,15 +16,22 @@ import { type RateLimitTier, checkRateLimit, getRateLimitHeaders } from '$lib/se
 const supabaseAuth: Handle = async ({ event, resolve }) => {
 	event.locals.supabase = createSupabaseServerClient(event.cookies);
 
+	// Cache per-request: root layout + dashboard layout both call this,
+	// but the Supabase getUser() network call only happens once.
+	let sessionCache: { session: Session | null; user: User | null } | null = null;
+
 	event.locals.safeGetSession = async (): Promise<{
 		session: Session | null;
 		user: User | null;
 	}> => {
+		if (sessionCache) return sessionCache;
+
 		const {
 			data: { session }
 		} = await event.locals.supabase.auth.getSession();
 		if (!session) {
-			return { session: null, user: null };
+			sessionCache = { session: null, user: null };
+			return sessionCache;
 		}
 
 		const {
@@ -32,10 +39,12 @@ const supabaseAuth: Handle = async ({ event, resolve }) => {
 			error
 		} = await event.locals.supabase.auth.getUser();
 		if (error || !user) {
-			return { session: null, user: null };
+			sessionCache = { session: null, user: null };
+			return sessionCache;
 		}
 
-		return { session, user };
+		sessionCache = { session, user };
+		return sessionCache;
 	};
 
 	return resolve(event, {
