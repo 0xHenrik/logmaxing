@@ -1,6 +1,7 @@
 <script lang="ts">
 	let { data } = $props();
 
+	let mobileMenuOpen = $state(false);
 	let waitlistEmail = $state('');
 	let waitlistStatus = $state<'idle' | 'loading' | 'success' | 'error'>('idle');
 	let waitlistMessage = $state('');
@@ -182,7 +183,8 @@
 				<a href="/" class="text-xl font-bold tracking-tight">
 					<span class="text-purple-400">log</span>maxing
 				</a>
-				<div class="flex items-center gap-6">
+				<!-- Desktop nav -->
+				<div class="hidden items-center gap-6 lg:flex">
 					<a href="/docs" class="text-sm text-zinc-400 transition-colors hover:text-zinc-100"
 						>Docs</a
 					>
@@ -213,8 +215,107 @@
 						</a>
 					{/if}
 				</div>
+
+				<!-- Mobile hamburger -->
+				<button
+					onclick={() => (mobileMenuOpen = !mobileMenuOpen)}
+					class="rounded-md p-1.5 text-zinc-400 transition-colors hover:bg-zinc-800/50 hover:text-zinc-200 lg:hidden"
+					aria-label="Toggle menu"
+				>
+					<svg
+						class="h-5 w-5"
+						fill="none"
+						viewBox="0 0 24 24"
+						stroke="currentColor"
+						stroke-width="1.5"
+					>
+						{#if mobileMenuOpen}
+							<path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+						{:else}
+							<path
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+							/>
+						{/if}
+					</svg>
+				</button>
 			</div>
 		</nav>
+
+		<!-- Mobile menu overlay -->
+		{#if mobileMenuOpen}
+			<div class="fixed inset-0 z-50 lg:hidden">
+				<button
+					class="absolute inset-0 bg-zinc-950/80 backdrop-blur-sm"
+					onclick={() => (mobileMenuOpen = false)}
+					aria-label="Close menu"
+				></button>
+				<div class="absolute top-0 right-0 h-full w-64 border-l border-zinc-800/50 bg-zinc-950 p-6">
+					<div class="mb-6 flex items-center justify-between">
+						<span class="text-lg font-bold tracking-tight">
+							<span class="text-purple-400">log</span>maxing
+						</span>
+						<button
+							onclick={() => (mobileMenuOpen = false)}
+							class="rounded-md p-1 text-zinc-400 hover:text-zinc-200"
+							aria-label="Close menu"
+						>
+							<svg
+								class="h-5 w-5"
+								fill="none"
+								viewBox="0 0 24 24"
+								stroke="currentColor"
+								stroke-width="1.5"
+							>
+								<path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+							</svg>
+						</button>
+					</div>
+					<nav class="space-y-4">
+						<a
+							href="/docs"
+							onclick={() => (mobileMenuOpen = false)}
+							class="block text-sm text-zinc-400 transition-colors hover:text-zinc-100">Docs</a
+						>
+						<a
+							href="#pricing"
+							onclick={() => (mobileMenuOpen = false)}
+							class="block text-sm text-zinc-400 transition-colors hover:text-zinc-100">Pricing</a
+						>
+						{#if data.session}
+							<a
+								href="/dashboard"
+								onclick={() => (mobileMenuOpen = false)}
+								class="block text-sm text-zinc-400 transition-colors hover:text-zinc-100"
+								>Dashboard</a
+							>
+							<form method="POST" action="/auth/sign-out">
+								<button
+									type="submit"
+									class="w-full text-left text-sm text-zinc-400 transition-colors hover:text-zinc-100"
+								>
+									Sign Out
+								</button>
+							</form>
+						{:else}
+							<a
+								href="/sign-in"
+								onclick={() => (mobileMenuOpen = false)}
+								class="block text-sm text-zinc-400 transition-colors hover:text-zinc-100">Sign In</a
+							>
+							<a
+								href="/sign-up"
+								onclick={() => (mobileMenuOpen = false)}
+								class="block rounded-lg bg-purple-600 px-4 py-2 text-center text-sm font-medium text-white transition-colors hover:bg-purple-500"
+							>
+								Sign Up
+							</a>
+						{/if}
+					</nav>
+				</div>
+			</div>
+		{/if}
 	</header>
 
 	<main id="main-content">

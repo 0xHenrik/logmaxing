@@ -1,0 +1,22 @@
+# Dependencies
+pnpm-lock.yaml
+node_modules/
+
+# Build artifacts
+.svelte-kit/
+.vercel/
+build/
+
+# Large data files (read only when explicitly needed)
+seed-data.ts
+
+# Archive docs (explicitly excluded per CLAUDE.md)
+docs/archive/
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Generated
+*.db
+nul

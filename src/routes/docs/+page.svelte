@@ -6,9 +6,14 @@
 	/>
 </svelte:head>
 
-<iframe src="/scalar.html" title="API Documentation"></iframe>
+<div class="docs-wrapper">
+	<iframe src="/scalar.html" title="API Documentation"></iframe>
+</div>
 
 <style>
+	.docs-wrapper {
+		background: #09090b;
+	}
 	iframe {
 		width: 100%;
 		height: 100vh;

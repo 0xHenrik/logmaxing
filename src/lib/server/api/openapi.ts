@@ -2,7 +2,7 @@ export const openApiSpec = {
 	openapi: '3.1.0',
 	info: {
 		title: 'Logmaxing Training Science API',
-		version: '1.2.0',
+		version: '1.3.0',
 		description: `
 The first public API for exercise science data. Access EMG-backed muscle activation data,
 volume landmarks (MEV/MAV/MRV), and a comprehensive exercise database.
@@ -80,6 +80,11 @@ Rate limit headers are returned on every response:
 			name: 'Periodization',
 			description:
 				'Periodization templates — curated training splits, block structures, and volume recommendations based on exercise science'
+		},
+		{
+			name: 'Programs',
+			description:
+				'Build and manage workout programs. Programs contain blocks → days → workouts → exercises. All resources are user-owned with ownership verified via the parent chain.'
 		}
 	],
 	paths: {
@@ -1111,6 +1116,808 @@ Per-tier key limits:
 				}
 			}
 		},
+		'/programs': {
+			get: {
+				tags: ['Programs'],
+				summary: 'List your programs',
+				description: 'Returns all workout programs belonging to the authenticated user.',
+				operationId: 'listPrograms',
+				parameters: [
+					{
+						name: 'limit',
+						in: 'query',
+						schema: { type: 'integer', default: 50, minimum: 1, maximum: 100 },
+						description: 'Maximum number of results'
+					},
+					{
+						name: 'offset',
+						in: 'query',
+						schema: { type: 'integer', default: 0, minimum: 0 },
+						description: 'Number of results to skip'
+					}
+				],
+				responses: {
+					'200': {
+						description: 'List of programs',
+						content: {
+							'application/json': {
+								schema: {
+									type: 'array',
+									items: { $ref: '#/components/schemas/Program' }
+								}
+							}
+						}
+					},
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			},
+			post: {
+				tags: ['Programs'],
+				summary: 'Create a program',
+				description:
+					'Creates a new workout program. Optionally include nested blocks, days, workouts, and exercises to create the full structure in one request (transaction-wrapped).',
+				operationId: 'createProgram',
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/ProgramInput' },
+							examples: {
+								simple: {
+									summary: 'Empty program',
+									value: { name: 'My PPL Program' }
+								},
+								nested: {
+									summary: 'Program with nested structure',
+									value: {
+										name: 'PPL',
+										blocks: [
+											{
+												name: 'Week 1-4',
+												sequence: 1,
+												days: [
+													{
+														name: 'Push',
+														sequence: 1,
+														workouts: [
+															{
+																name: 'Main',
+																sequence: 1,
+																exercises: [
+																	{
+																		exerciseId: 1,
+																		sets: 4,
+																		reps: '8-12',
+																		sequence: 1
+																	}
+																]
+															}
+														]
+													}
+												]
+											}
+										]
+									}
+								}
+							}
+						}
+					}
+				},
+				responses: {
+					'201': {
+						description: 'Program created',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Program' }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/programs/{id}': {
+			get: {
+				tags: ['Programs'],
+				summary: 'Get full program',
+				description:
+					'Returns the complete program with all nested blocks, days, workouts, and exercises in a single response.',
+				operationId: 'getProgram',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Program ID'
+					}
+				],
+				responses: {
+					'200': {
+						description: 'Full program with nested data',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/ProgramFull' }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Program not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Program not found' }
+							}
+						}
+					},
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			},
+			put: {
+				tags: ['Programs'],
+				summary: 'Update a program',
+				description: 'Updates program metadata. Only the program owner can update.',
+				operationId: 'updateProgram',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Program ID'
+					}
+				],
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/ProgramUpdateInput' }
+						}
+					}
+				},
+				responses: {
+					'200': {
+						description: 'Program updated',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Message' },
+								example: { message: 'Updated' }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Program not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Program not found' }
+							}
+						}
+					},
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			},
+			delete: {
+				tags: ['Programs'],
+				summary: 'Delete a program',
+				description:
+					'Permanently deletes a program and all its blocks, days, workouts, and exercises (cascade).',
+				operationId: 'deleteProgram',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Program ID'
+					}
+				],
+				responses: {
+					'200': {
+						description: 'Program deleted',
+						content: {
+							'application/json': {
+								schema: {
+									type: 'object',
+									properties: {
+										message: { type: 'string' },
+										id: { type: 'integer' }
+									}
+								},
+								example: { message: 'Deleted', id: 1 }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Program not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Program not found' }
+							}
+						}
+					},
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/programs/{id}/blocks': {
+			post: {
+				tags: ['Programs'],
+				summary: 'Add block to program',
+				description: 'Creates a new block within the specified program.',
+				operationId: 'createBlock',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Program ID'
+					}
+				],
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/BlockInput' }
+						}
+					}
+				},
+				responses: {
+					'201': {
+						description: 'Block created',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/ProgramBlock' }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Program not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Program not found' }
+							}
+						}
+					},
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/blocks/{id}': {
+			put: {
+				tags: ['Programs'],
+				summary: 'Update a block',
+				description: 'Updates block metadata. Ownership verified via program.',
+				operationId: 'updateBlock',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Block ID'
+					}
+				],
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/BlockUpdateInput' }
+						}
+					}
+				},
+				responses: {
+					'200': {
+						description: 'Block updated',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Message' },
+								example: { message: 'Updated' }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Block not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Block not found' }
+							}
+						}
+					},
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			},
+			delete: {
+				tags: ['Programs'],
+				summary: 'Delete a block',
+				description: 'Deletes a block and all its days, workouts, and exercises (cascade).',
+				operationId: 'deleteBlock',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Block ID'
+					}
+				],
+				responses: {
+					'200': {
+						description: 'Block deleted',
+						content: {
+							'application/json': {
+								schema: {
+									type: 'object',
+									properties: {
+										message: { type: 'string' },
+										id: { type: 'integer' }
+									}
+								},
+								example: { message: 'Deleted', id: 1 }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Block not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Block not found' }
+							}
+						}
+					},
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/blocks/{id}/days': {
+			post: {
+				tags: ['Programs'],
+				summary: 'Add day to block',
+				description: 'Creates a new day within the specified block.',
+				operationId: 'createDay',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Block ID'
+					}
+				],
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/DayInput' }
+						}
+					}
+				},
+				responses: {
+					'201': {
+						description: 'Day created',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/BlockDaySchema' }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Block not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Block not found' }
+							}
+						}
+					},
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/days/{id}': {
+			put: {
+				tags: ['Programs'],
+				summary: 'Update a day',
+				description: 'Updates day metadata. Ownership verified via block → program.',
+				operationId: 'updateDay',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Day ID'
+					}
+				],
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/DayUpdateInput' }
+						}
+					}
+				},
+				responses: {
+					'200': {
+						description: 'Day updated',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Message' },
+								example: { message: 'Updated' }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Day not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Day not found' }
+							}
+						}
+					},
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			},
+			delete: {
+				tags: ['Programs'],
+				summary: 'Delete a day',
+				description: 'Deletes a day and all its workouts and exercises (cascade).',
+				operationId: 'deleteDay',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Day ID'
+					}
+				],
+				responses: {
+					'200': {
+						description: 'Day deleted',
+						content: {
+							'application/json': {
+								schema: {
+									type: 'object',
+									properties: {
+										message: { type: 'string' },
+										id: { type: 'integer' }
+									}
+								},
+								example: { message: 'Deleted', id: 1 }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Day not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Day not found' }
+							}
+						}
+					},
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/days/{id}/workouts': {
+			post: {
+				tags: ['Programs'],
+				summary: 'Add workout to day',
+				description: 'Creates a new workout within the specified day.',
+				operationId: 'createWorkout',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Day ID'
+					}
+				],
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/WorkoutInput' }
+						}
+					}
+				},
+				responses: {
+					'201': {
+						description: 'Workout created',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/WorkoutSchema' }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Day not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Day not found' }
+							}
+						}
+					},
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/workouts/{id}': {
+			put: {
+				tags: ['Programs'],
+				summary: 'Update a workout',
+				description: 'Updates workout metadata. Ownership verified via day → block → program.',
+				operationId: 'updateWorkout',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Workout ID'
+					}
+				],
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/WorkoutUpdateInput' }
+						}
+					}
+				},
+				responses: {
+					'200': {
+						description: 'Workout updated',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Message' },
+								example: { message: 'Updated' }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Workout not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Workout not found' }
+							}
+						}
+					},
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			},
+			delete: {
+				tags: ['Programs'],
+				summary: 'Delete a workout',
+				description: 'Deletes a workout and all its exercises (cascade).',
+				operationId: 'deleteWorkout',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Workout ID'
+					}
+				],
+				responses: {
+					'200': {
+						description: 'Workout deleted',
+						content: {
+							'application/json': {
+								schema: {
+									type: 'object',
+									properties: {
+										message: { type: 'string' },
+										id: { type: 'integer' }
+									}
+								},
+								example: { message: 'Deleted', id: 1 }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Workout not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Workout not found' }
+							}
+						}
+					},
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/workouts/{id}/exercises': {
+			post: {
+				tags: ['Programs'],
+				summary: 'Add exercise to workout',
+				description:
+					'Adds an exercise to the specified workout with sets, reps, and other parameters.',
+				operationId: 'createWorkoutExercise',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Workout ID'
+					}
+				],
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/WorkoutExerciseInput' }
+						}
+					}
+				},
+				responses: {
+					'201': {
+						description: 'Exercise added to workout',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/WorkoutExerciseSchema' }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Workout not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Workout not found' }
+							}
+						}
+					},
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
+		'/workout-exercises/{id}': {
+			put: {
+				tags: ['Programs'],
+				summary: 'Update a workout exercise',
+				description:
+					'Updates exercise parameters (sets, reps, weight, etc.). Ownership verified via full chain.',
+				operationId: 'updateWorkoutExercise',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Workout exercise ID'
+					}
+				],
+				requestBody: {
+					required: true,
+					content: {
+						'application/json': {
+							schema: { $ref: '#/components/schemas/WorkoutExerciseUpdateInput' }
+						}
+					}
+				},
+				responses: {
+					'200': {
+						description: 'Exercise updated',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Message' },
+								example: { message: 'Updated' }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Workout exercise not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Workout exercise not found' }
+							}
+						}
+					},
+					'415': { $ref: '#/components/responses/UnsupportedMediaType' },
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			},
+			delete: {
+				tags: ['Programs'],
+				summary: 'Delete a workout exercise',
+				description: 'Removes an exercise from a workout.',
+				operationId: 'deleteWorkoutExercise',
+				parameters: [
+					{
+						name: 'id',
+						in: 'path',
+						required: true,
+						schema: { type: 'integer', minimum: 1 },
+						description: 'Workout exercise ID'
+					}
+				],
+				responses: {
+					'200': {
+						description: 'Exercise removed',
+						content: {
+							'application/json': {
+								schema: {
+									type: 'object',
+									properties: {
+										message: { type: 'string' },
+										id: { type: 'integer' }
+									}
+								},
+								example: { message: 'Deleted', id: 1 }
+							}
+						}
+					},
+					'400': { $ref: '#/components/responses/ValidationError' },
+					'401': { $ref: '#/components/responses/Unauthorized' },
+					'404': {
+						description: 'Workout exercise not found',
+						content: {
+							'application/json': {
+								schema: { $ref: '#/components/schemas/Error' },
+								example: { error: 'Workout exercise not found' }
+							}
+						}
+					},
+					'429': { $ref: '#/components/responses/RateLimited' }
+				}
+			}
+		},
 		'/waitlist': {
 			post: {
 				tags: ['Waitlist'],
@@ -1802,6 +2609,285 @@ Per-tier key limits:
 					}
 				},
 				required: ['email']
+			},
+			Program: {
+				type: 'object',
+				description: 'A workout program owned by a user',
+				properties: {
+					id: { type: 'integer' },
+					userId: { type: 'integer' },
+					name: { type: 'string' },
+					description: { type: 'string', nullable: true },
+					startDate: { type: 'string', nullable: true },
+					endDate: { type: 'string', nullable: true }
+				},
+				required: ['id', 'userId', 'name']
+			},
+			ProgramBlock: {
+				type: 'object',
+				description: 'A training block within a program (e.g., "Week 1-4 Accumulation")',
+				properties: {
+					id: { type: 'integer' },
+					programId: { type: 'integer' },
+					name: { type: 'string' },
+					description: { type: 'string', nullable: true },
+					sequence: { type: 'integer', nullable: true },
+					durationWeeks: { type: 'integer', nullable: true }
+				},
+				required: ['id', 'programId', 'name']
+			},
+			BlockDaySchema: {
+				type: 'object',
+				description: 'A training day within a block (e.g., "Push Day")',
+				properties: {
+					id: { type: 'integer' },
+					blockId: { type: 'integer' },
+					name: { type: 'string' },
+					sequence: { type: 'integer', nullable: true }
+				},
+				required: ['id', 'blockId', 'name']
+			},
+			WorkoutSchema: {
+				type: 'object',
+				description: 'A workout session within a day',
+				properties: {
+					id: { type: 'integer' },
+					blockDayId: { type: 'integer' },
+					name: { type: 'string', nullable: true },
+					notes: { type: 'string', nullable: true },
+					sequence: { type: 'integer', nullable: true }
+				},
+				required: ['id', 'blockDayId']
+			},
+			WorkoutExerciseSchema: {
+				type: 'object',
+				description: 'An exercise within a workout with prescription details',
+				properties: {
+					id: { type: 'integer' },
+					workoutId: { type: 'integer' },
+					exerciseId: { type: 'integer' },
+					sets: { type: 'integer', nullable: true },
+					reps: { type: 'string', nullable: true, description: 'Rep range (e.g., "8-12")' },
+					weight: { type: 'number', nullable: true },
+					restSeconds: { type: 'integer', nullable: true },
+					notes: { type: 'string', nullable: true },
+					sequence: { type: 'integer', nullable: true },
+					groupName: {
+						type: 'string',
+						nullable: true,
+						description: 'Superset/circuit group name'
+					}
+				},
+				required: ['id', 'workoutId', 'exerciseId']
+			},
+			ProgramFull: {
+				type: 'object',
+				description: 'Complete program with all nested blocks, days, workouts, and exercises',
+				properties: {
+					id: { type: 'integer' },
+					userId: { type: 'integer' },
+					name: { type: 'string' },
+					description: { type: 'string', nullable: true },
+					startDate: { type: 'string', nullable: true },
+					endDate: { type: 'string', nullable: true },
+					blocks: {
+						type: 'array',
+						items: {
+							allOf: [
+								{ $ref: '#/components/schemas/ProgramBlock' },
+								{
+									type: 'object',
+									properties: {
+										days: {
+											type: 'array',
+											items: {
+												allOf: [
+													{ $ref: '#/components/schemas/BlockDaySchema' },
+													{
+														type: 'object',
+														properties: {
+															workouts: {
+																type: 'array',
+																items: {
+																	allOf: [
+																		{ $ref: '#/components/schemas/WorkoutSchema' },
+																		{
+																			type: 'object',
+																			properties: {
+																				exercises: {
+																					type: 'array',
+																					items: {
+																						$ref: '#/components/schemas/WorkoutExerciseSchema'
+																					}
+																				}
+																			}
+																		}
+																	]
+																}
+															}
+														}
+													}
+												]
+											}
+										}
+									}
+								}
+							]
+						}
+					}
+				},
+				required: ['id', 'userId', 'name', 'blocks']
+			},
+			ProgramInput: {
+				type: 'object',
+				description:
+					'Input for creating a program. Include blocks array for nested creation (transaction-wrapped).',
+				properties: {
+					name: { type: 'string', minLength: 1, maxLength: 200 },
+					description: { type: 'string', nullable: true },
+					startDate: { type: 'string', nullable: true },
+					endDate: { type: 'string', nullable: true },
+					blocks: {
+						type: 'array',
+						items: {
+							type: 'object',
+							properties: {
+								name: { type: 'string', minLength: 1, maxLength: 200 },
+								description: { type: 'string', nullable: true },
+								sequence: { type: 'integer', nullable: true },
+								durationWeeks: { type: 'integer', nullable: true },
+								days: {
+									type: 'array',
+									items: {
+										type: 'object',
+										properties: {
+											name: { type: 'string', minLength: 1, maxLength: 200 },
+											sequence: { type: 'integer', nullable: true },
+											workouts: {
+												type: 'array',
+												items: {
+													type: 'object',
+													properties: {
+														name: { type: 'string', nullable: true },
+														notes: { type: 'string', nullable: true },
+														sequence: { type: 'integer', nullable: true },
+														exercises: {
+															type: 'array',
+															items: {
+																type: 'object',
+																properties: {
+																	exerciseId: { type: 'integer', minimum: 1 },
+																	sets: { type: 'integer', nullable: true },
+																	reps: { type: 'string', nullable: true },
+																	weight: { type: 'number', nullable: true },
+																	restSeconds: { type: 'integer', nullable: true },
+																	notes: { type: 'string', nullable: true },
+																	sequence: { type: 'integer', nullable: true },
+																	groupName: { type: 'string', nullable: true }
+																},
+																required: ['exerciseId']
+															}
+														}
+													}
+												}
+											}
+										},
+										required: ['name']
+									}
+								}
+							},
+							required: ['name']
+						}
+					}
+				},
+				required: ['name']
+			},
+			ProgramUpdateInput: {
+				type: 'object',
+				description: 'Partial update for program metadata',
+				properties: {
+					name: { type: 'string', minLength: 1, maxLength: 200 },
+					description: { type: 'string', nullable: true },
+					startDate: { type: 'string', nullable: true },
+					endDate: { type: 'string', nullable: true }
+				}
+			},
+			BlockInput: {
+				type: 'object',
+				properties: {
+					name: { type: 'string', minLength: 1, maxLength: 200 },
+					description: { type: 'string', nullable: true },
+					sequence: { type: 'integer', nullable: true },
+					durationWeeks: { type: 'integer', nullable: true }
+				},
+				required: ['name']
+			},
+			BlockUpdateInput: {
+				type: 'object',
+				properties: {
+					name: { type: 'string', minLength: 1, maxLength: 200 },
+					description: { type: 'string', nullable: true },
+					sequence: { type: 'integer', nullable: true },
+					durationWeeks: { type: 'integer', nullable: true }
+				}
+			},
+			DayInput: {
+				type: 'object',
+				properties: {
+					name: { type: 'string', minLength: 1, maxLength: 200 },
+					sequence: { type: 'integer', nullable: true }
+				},
+				required: ['name']
+			},
+			DayUpdateInput: {
+				type: 'object',
+				properties: {
+					name: { type: 'string', minLength: 1, maxLength: 200 },
+					sequence: { type: 'integer', nullable: true }
+				}
+			},
+			WorkoutInput: {
+				type: 'object',
+				properties: {
+					name: { type: 'string', nullable: true },
+					notes: { type: 'string', nullable: true },
+					sequence: { type: 'integer', nullable: true }
+				}
+			},
+			WorkoutUpdateInput: {
+				type: 'object',
+				properties: {
+					name: { type: 'string', nullable: true },
+					notes: { type: 'string', nullable: true },
+					sequence: { type: 'integer', nullable: true }
+				}
+			},
+			WorkoutExerciseInput: {
+				type: 'object',
+				properties: {
+					exerciseId: { type: 'integer', minimum: 1 },
+					sets: { type: 'integer', nullable: true },
+					reps: { type: 'string', nullable: true },
+					weight: { type: 'number', nullable: true },
+					restSeconds: { type: 'integer', nullable: true },
+					notes: { type: 'string', nullable: true },
+					sequence: { type: 'integer', nullable: true },
+					groupName: { type: 'string', nullable: true }
+				},
+				required: ['exerciseId']
+			},
+			WorkoutExerciseUpdateInput: {
+				type: 'object',
+				properties: {
+					exerciseId: { type: 'integer', minimum: 1 },
+					sets: { type: 'integer', nullable: true },
+					reps: { type: 'string', nullable: true },
+					weight: { type: 'number', nullable: true },
+					restSeconds: { type: 'integer', nullable: true },
+					notes: { type: 'string', nullable: true },
+					sequence: { type: 'integer', nullable: true },
+					groupName: { type: 'string', nullable: true }
+				}
 			}
 		},
 		responses: {
