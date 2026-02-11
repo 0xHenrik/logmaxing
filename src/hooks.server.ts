@@ -116,8 +116,10 @@ const apiAuth: Handle = async ({ event, resolve }) => {
 	// Public endpoints that skip auth
 	const isPublic =
 		pathname.includes('openapi.json') ||
+		pathname.startsWith('/api/health') ||
 		pathname.startsWith('/api/waitlist') ||
 		pathname.startsWith('/api/stripe/webhook') ||
+		(isApiSubdomain && pathname === '/health') ||
 		(isApiSubdomain && pathname === '/waitlist') ||
 		(isApiSubdomain && pathname === '/stripe/webhook');
 
